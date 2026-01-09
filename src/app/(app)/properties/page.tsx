@@ -12,23 +12,53 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getProperties } from '@/lib/data';
+import { getProperties, getTenants } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { PlusCircle, Edit } from 'lucide-react';
+import { PlusCircle, Edit, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState } from 'react';
-import { Property } from '@/lib/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useEffect, useState, useMemo } from 'react';
+import { Property, Tenant, Unit } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     getProperties().then(setProperties);
+    getTenants().then(setTenants);
   }, []);
 
   const getImage = (imageId: string) => {
     return PlaceHolderImages.find((img) => img.id === imageId);
+  };
+
+  const filteredProperties = useMemo(() => {
+    if (!searchQuery) {
+      return properties;
+    }
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return properties
+      .map((property) => {
+        const filteredUnits = property.units.filter((unit) =>
+          unit.name.toLowerCase().includes(lowercasedQuery)
+        );
+        return { ...property, units: filteredUnits };
+      })
+      .filter((property) => property.units.length > 0);
+  }, [searchQuery, properties]);
+
+  const getTenantForUnit = (propertyId: string, unitName: string) => {
+    return tenants.find(
+      (tenant) => tenant.propertyId === propertyId && tenant.unitName === unitName
+    );
   };
 
   if (properties.length === 0) {
@@ -52,17 +82,28 @@ export default function PropertiesPage() {
 
   return (
     <div>
-         <div className="flex items-center justify-between w-full mb-6">
-           <h2 className="text-2xl font-semibold">Properties</h2>
-            <Button asChild>
-                <Link href="/properties/add">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Property
-                </Link>
-            </Button>
+        <div className="flex items-center justify-between w-full mb-6">
+            <h2 className="text-2xl font-semibold">Properties</h2>
+            <div className="flex items-center gap-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search for a unit..."
+                        className="pl-10"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Button asChild>
+                    <Link href="/properties/add">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Property
+                    </Link>
+                </Button>
+            </div>
         </div>
         <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {properties.map((property) => {
+        {filteredProperties.map((property) => {
             const image = getImage(property.imageId);
             return (
             <Card key={property.id} className="overflow-hidden flex flex-col">
@@ -84,43 +125,43 @@ export default function PropertiesPage() {
                 <CardDescription>{property.type}</CardDescription>
                 <p className="mt-4 text-sm text-muted-foreground">{property.address}</p>
                 {property.units && Array.isArray(property.units) && (
-                  <>
-                    <div className="flex justify-between mt-4 text-sm text-muted-foreground">
-                      <div>
-                        <p className="font-medium">Total Units</p>
-                        <p>{property.units.length}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Occupied Units</p>
-                        <p>{property.units.filter(unit => unit.status === 'rented').length}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Vacant Units</p>
-                        <p>{property.units.filter(unit => unit.status === 'vacant').length}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <h4 className="font-medium">Units</h4>
-                      <ScrollArea className="h-48">
-                          <ul className="list-disc list-inside text-sm text-muted-foreground">
-                          {property.units.map((unit, index) => (
-                              <li key={`${unit.name}-${index}`} className="flex items-center justify-between">
-                                  <span>{unit.name}</span>
-                                  <div>
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Units ({property.units.length})</h4>
+                    <Accordion type="single" collapsible className="w-full">
+                      {property.units.map((unit, index) => {
+                        const tenant = getTenantForUnit(property.id, unit.name);
+                        return (
+                          <AccordionItem value={`item-${index}`} key={`${unit.name}-${index}`}>
+                            <AccordionTrigger>
+                                <div className="flex items-center justify-between w-full pr-4">
+                                    <span>{unit.name}</span>
+                                    <div>
                                       <Badge variant={unit.status === 'vacant' ? 'secondary' : 'default'}> 
                                           {unit.status}
                                       </Badge>
                                       <Badge variant='outline' className="ml-2 capitalize">{unit.managementType}</Badge>
-                                  </div>
-                              </li>
-                          ))}
-                          </ul>
-                      </ScrollArea>
-                    </div>
-                  </>
+                                    </div>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {tenant ? (
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <p><span className="font-medium text-foreground">Tenant:</span> {tenant.name}</p>
+                                  <p><span className="font-medium text-foreground">Email:</span> {tenant.email}</p>
+                                  <p><span className="font-medium text-foreground">Phone:</span> {tenant.phone}</p>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">This unit is vacant.</p>
+                              )}
+                            </AccordionContent>
+                          </AccordionItem>
+                        )
+                      })}
+                    </Accordion>
+                  </div>
                 )}
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2 p-6 pt-0">
+                <CardFooter className="flex justify-end gap-2 p-6 pt-0 mt-auto">
                     <Button asChild variant="outline">
                         <Link href={`/properties/edit/${property.id}`}>
                             <Edit className="h-4 w-4" />
