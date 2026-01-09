@@ -1,0 +1,118 @@
+
+import type { Property, Tenant, MaintenanceRequest, Unit } from '@/lib/types';
+import { db } from './firebase';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
+
+async function getCollection<T>(collectionName: string): Promise<T[]> {
+  const querySnapshot = await getDocs(collection(db, collectionName));
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+}
+
+async function getDocument<T>(collectionName: string, id: string): Promise<T | null> {
+    const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as T;
+    } else {
+        return null;
+    }
+}
+
+
+export async function getProperties(): Promise<Property[]> {
+  return getCollection<Property>('properties');
+}
+
+export async function getTenants(): Promise<Tenant[]> {
+    const q = query(collection(db, "tenants"), where("status", "==", "active"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
+}
+
+export async function getMaintenanceRequests(): Promise<MaintenanceRequest[]> {
+    return getCollection<MaintenanceRequest>('maintenanceRequests');
+}
+
+export async function getProperty(id: string): Promise<Property | null> {
+    return getDocument<Property>('properties', id);
+}
+
+export async function getTenant(id: string): Promise<Tenant | null> {
+    return getDocument<Tenant>('tenants', id);
+}
+
+export async function addTenant(tenant: Omit<Tenant, 'id' | 'lease' | 'status'>): Promise<void> {
+    const newTenantData = {
+        ...tenant,
+        status: 'active' as const,
+        lease: {
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            rent: 0,
+            paymentStatus: 'Pending' as const
+        }
+    };
+    await addDoc(collection(db, 'tenants'), newTenantData);
+    const property = await getProperty(tenant.propertyId);
+    if (property && property.units) {
+        const updatedUnits = property.units.map(unit => 
+            unit.name === tenant.unitName ? { ...unit, status: 'rented' } : unit
+        );
+        const propertyRef = doc(db, 'properties', tenant.propertyId);
+        await updateDoc(propertyRef, { units: updatedUnits });
+    }
+}
+
+export async function addProperty(property: Omit<Property, 'id' | 'units' | 'imageId'> & { units: string }): Promise<void> {
+    const { units, ...propertyData } = property;
+    const unitArray = units.split(',')
+        .map(name => name.trim())
+        .filter(name => name)
+        .map(name => ({ name, status: 'vacant' as const, managementType: 'owner' as const }));
+    const imageId = Math.floor(Math.random() * 15 + 1).toString();
+    await addDoc(collection(db, 'properties'), { ...propertyData, units: unitArray, imageId });
+}
+
+export async function archiveTenant(tenantId: string): Promise<void> {
+    const tenant = await getTenant(tenantId);
+    if (tenant) {
+        const tenantRef = doc(db, 'tenants', tenantId);
+        await updateDoc(tenantRef, { status: 'archived' });
+
+        const property = await getProperty(tenant.propertyId);
+        if (property && property.units) {
+            const updatedUnits = property.units.map(unit =>
+                unit.name === tenant.unitName ? { ...unit, status: 'vacant' } : unit
+            );
+            const propertyRef = doc(db, 'properties', tenant.propertyId);
+            await updateDoc(propertyRef, { units: updatedUnits });
+        }
+    }
+}
+
+export async function updateTenant(tenantId: string, tenantData: Partial<Tenant>): Promise<void> {
+    const oldTenant = await getTenant(tenantId);
+    const tenantRef = doc(db, 'tenants', tenantId);
+    await updateDoc(tenantRef, tenantData);
+
+    if (oldTenant && (oldTenant.propertyId !== tenantData.propertyId || oldTenant.unitName !== tenantData.unitName)) {
+        const oldProperty = await getProperty(oldTenant.propertyId);
+        if (oldProperty && oldProperty.units) {
+            const updatedOldUnits = oldProperty.units.map(unit =>
+                unit.name === oldTenant.unitName ? { ...unit, status: 'vacant' } : unit
+            );
+            const oldPropertyRef = doc(db, 'properties', oldTenant.propertyId);
+            await updateDoc(oldPropertyRef, { units: updatedOldUnits });
+        }
+
+        const newProperty = await getProperty(tenantData.propertyId!);
+        if (newProperty && newProperty.units) {
+            const updatedNewUnits = newProperty.units.map(unit =>
+                unit.name === tenantData.unitName ? { ...unit, status: 'rented' } : unit
+            );
+            const newPropertyRef = doc(db, 'properties', tenantData.propertyId!);
+            await updateDoc(newPropertyRef, { units: updatedNewUnits });
+        }
+    }
+}

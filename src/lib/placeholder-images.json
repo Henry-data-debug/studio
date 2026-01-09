@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "property-1",
+      "description": "A modern high-rise apartment building.",
+      "imageUrl": "https://images.unsplash.com/photo-1546349851-64285be8e9fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtb2Rlcm4lMjBidWlsZGluZ3xlbnwwfHx8fDE3Njc5NDU0MTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern building"
+    },
+    {
+      "id": "property-2",
+      "description": "A stylish mid-rise apartment complex with balconies.",
+      "imageUrl": "https://images.unsplash.com/photo-1515263487990-61b07816b324?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhcGFydG1lbnQlMjBjb21wbGV4fGVufDB8fHx8MTc2Nzk0NTQxOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "apartment complex"
+    },
+    {
+      "id": "property-3",
+      "description": "A charming brick annex building with large windows.",
+      "imageUrl": "https://images.unsplash.com/photo-1596798256394-00df72837a93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxicmljayUyMGJ1aWxkaW5nfGVufDB8fHx8MTc2Nzg2MTY2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "brick building"
+    }
+  ]
+}
