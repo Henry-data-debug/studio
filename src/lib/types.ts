@@ -53,7 +53,7 @@ export type MaintenanceRequest = {
   status: 'New' | 'In Progress' | 'Completed';
 };
 
-export type UserRole = 'admin' | 'viewer' | 'agent';
+export type UserRole = 'admin' | 'viewer' | 'agent' | 'tenant';
 
 export type UserProfile = {
     id: string;

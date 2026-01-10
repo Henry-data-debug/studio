@@ -1,5 +1,5 @@
 
-import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant } from '@/lib/types';
+import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile } from '@/lib/types';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc } from 'firebase/firestore';
 
@@ -133,7 +133,7 @@ export async function updateTenant(tenantId: string, tenantData: Partial<Tenant>
     }
 }
 
-export async function createUserProfile(userId: string, email: string, role: 'admin' | 'viewer' | 'agent' = 'viewer') {
+export async function createUserProfile(userId: string, email: string, role: UserProfile['role'] = 'viewer') {
     const userProfileRef = doc(db, 'users', userId);
     await setDoc(userProfileRef, {
         email,
@@ -141,11 +141,11 @@ export async function createUserProfile(userId: string, email: string, role: 'ad
     });
 }
 
-export async function getUserProfile(userId: string) {
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
     const userProfileRef = doc(db, 'users', userId);
     const docSnap = await getDoc(userProfileRef);
     if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() };
+        return { id: docSnap.id, ...docSnap.data() } as UserProfile;
     }
     return null;
 }
