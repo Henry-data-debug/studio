@@ -65,16 +65,15 @@ export default function EditTenantPage() {
         const selectedProperty = properties.find(p => p.id === selectedPropertyId);
         
         if (selectedProperty) {
-            // All units from the newly selected property
-            const allUnits = selectedProperty.units.map(u => u.name);
-            
             // Vacant units from the newly selected property
-            const vacantUnits = selectedProperty.units.filter(u => u.status === 'vacant').map(u => u.name);
+            const vacantUnits = selectedProperty.units
+                .filter(u => u.status === 'vacant' && u.name)
+                .map(u => u.name);
             
             let availableUnits = [...vacantUnits];
             
             // If the selected property is the tenant's original property, also include their current unit
-            if (tenant && selectedPropertyId === tenant.propertyId && !availableUnits.includes(tenant.unitName)) {
+            if (tenant && selectedPropertyId === tenant.propertyId && tenant.unitName && !availableUnits.includes(tenant.unitName)) {
                 availableUnits.push(tenant.unitName);
             }
             
