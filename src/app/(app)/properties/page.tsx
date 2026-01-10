@@ -50,9 +50,13 @@ export default function PropertiesPage() {
         const filteredUnits = property.units.filter((unit) =>
           unit.name.toLowerCase().includes(lowercasedQuery)
         );
+        // If the property name matches, show all units
+        if (property.name.toLowerCase().includes(lowercasedQuery)) {
+            return property;
+        }
         return { ...property, units: filteredUnits };
       })
-      .filter((property) => property.units.length > 0);
+      .filter((property) => property.units.length > 0 || property.name.toLowerCase().includes(lowercasedQuery));
   }, [searchQuery, properties]);
 
   const getTenantForUnit = (propertyId: string, unitName: string) => {
@@ -88,7 +92,7 @@ export default function PropertiesPage() {
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search for a unit..."
+                        placeholder="Search property or unit..."
                         className="pl-10"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -107,23 +111,33 @@ export default function PropertiesPage() {
             const image = getImage(property.imageId);
             return (
             <Card key={property.id} className="overflow-hidden flex flex-col">
-                <CardHeader className="p-0">
-                {image && (
-                    <div className="aspect-video relative w-full">
-                        <Image
-                        src={image.imageUrl}
-                        alt={image.description}
-                        data-ai-hint={image.imageHint}
-                        fill
-                        className="object-cover"
-                        />
+                <div className="p-0">
+                    {image && (
+                        <div className="aspect-video relative w-full">
+                            <Image
+                            src={image.imageUrl}
+                            alt={image.description}
+                            data-ai-hint={image.imageHint}
+                            fill
+                            className="object-cover"
+                            />
+                        </div>
+                    )}
+                </div>
+                <CardHeader className="flex-row items-start justify-between gap-4">
+                    <div>
+                        <CardTitle>{property.name}</CardTitle>
+                        <CardDescription>{property.type}</CardDescription>
                     </div>
-                )}
+                     <Button asChild variant="outline" size="icon">
+                        <Link href={`/properties/edit/${property.id}`}>
+                            <Edit className="h-4 w-4" />
+                             <span className="sr-only">Edit Property</span>
+                        </Link>
+                    </Button>
                 </CardHeader>
-                <CardContent className="p-6 flex-grow">
-                <CardTitle className="mb-1">{property.name}</CardTitle>
-                <CardDescription>{property.type}</CardDescription>
-                <p className="mt-4 text-sm text-muted-foreground">{property.address}</p>
+                <CardContent className="pt-0 flex-grow">
+                <p className="text-sm text-muted-foreground">{property.address}</p>
                 {property.units && Array.isArray(property.units) && (
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">Units ({property.units.length})</h4>
@@ -136,7 +150,7 @@ export default function PropertiesPage() {
                                 <div className="flex items-center justify-between w-full pr-4">
                                     <span>{unit.name}</span>
                                     <div className="flex items-center gap-2">
-                                      <Badge variant={unit.status === 'vacant' ? 'secondary' : 'default'}> 
+                                      <Badge variant={unit.status === 'vacant' ? 'secondary' : unit.status === 'client occupied' ? 'outline' : 'default'} className="capitalize"> 
                                           {unit.status}
                                       </Badge>
                                       <Badge variant='outline' className="capitalize">{unit.ownership}</Badge>
@@ -152,7 +166,7 @@ export default function PropertiesPage() {
                                   <p><span className="font-medium text-foreground">Phone:</span> {tenant.phone}</p>
                                 </div>
                               ) : (
-                                <p className="text-sm text-muted-foreground">This unit is vacant.</p>
+                                <p className="text-sm text-muted-foreground">This unit is {unit.status}.</p>
                               )}
                             </AccordionContent>
                           </AccordionItem>
@@ -162,13 +176,6 @@ export default function PropertiesPage() {
                   </div>
                 )}
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2 p-6 pt-0 mt-auto">
-                    <Button asChild variant="outline">
-                        <Link href={`/properties/edit/${property.id}`}>
-                            <Edit className="h-4 w-4" />
-                        </Link>
-                    </Button>
-                </CardFooter>
             </Card>
             );
         })}
