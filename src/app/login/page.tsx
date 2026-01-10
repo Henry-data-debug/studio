@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { createUserProfile } from '@/lib/data';
@@ -12,7 +11,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -20,7 +18,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         setError('No user found with this email. You can sign up instead.');
@@ -45,12 +43,17 @@ export default function LoginPage() {
         title: 'Sign Up Successful',
         description: 'You can now log in with the credentials you just created.',
       });
+      // Force reload and redirect after sign up
+      window.location.href = '/dashboard';
     } catch (error: any) {
        if (error.code === 'auth/email-already-in-use') {
         setError('This email is already in use. Try logging in instead.');
        } else if (error.code === 'auth/invalid-email') {
         setError('Please enter a valid email address to sign up.');
-       } else {
+       } else if (error.code === 'auth/weak-password') {
+        setError('Password should be at least 6 characters.');
+       }
+       else {
         setError('Failed to sign up. Please try again later.');
       }
       console.error(error);
