@@ -98,35 +98,54 @@ export default function PropertiesPage() {
         </div>
         <Card>
             <CardContent className="p-0">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Property Name</TableHead>
-                            <TableHead>Address</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Units</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredProperties.map((property) => (
-                            <TableRow key={property.id}>
-                                <TableCell className="font-medium">{property.name}</TableCell>
-                                <TableCell>{property.address}</TableCell>
-                                <TableCell>{property.type}</TableCell>
-                                <TableCell>{property.units.length}</TableCell>
-                                <TableCell className="text-right">
+                <Accordion type="single" collapsible className="w-full">
+                    {filteredProperties.map((property) => (
+                        <AccordionItem value={property.id} key={property.id}>
+                            <AccordionTrigger className="px-6">
+                                <div className="text-left">
+                                    <h3 className="font-semibold">{property.name}</h3>
+                                    <p className="text-sm text-muted-foreground">{property.address}</p>
+                                    <p className="text-sm text-muted-foreground">{property.type}</p>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6">
+                                <div className="flex justify-between items-center mb-4">
+                                     <h4 className="font-medium">Units ({property.units.length})</h4>
                                     <Button asChild variant="outline" size="sm">
                                         <Link href={`/properties/edit/${property.id}`}>
                                             <Edit className="mr-2 h-4 w-4" />
-                                            Edit
+                                            Edit Property
                                         </Link>
                                     </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Unit</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Ownership</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {property.units.map(unit => (
+                                            <TableRow key={unit.name}>
+                                                <TableCell>{unit.name}</TableCell>
+                                                <TableCell>{unit.unitType}</TableCell>
+                                                <TableCell>{unit.ownership}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={unit.status === 'vacant' ? 'secondary' : unit.status === 'client occupied' ? 'outline' : 'default'} className="capitalize">
+                                                        {unit.status}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
             </CardContent>
         </Card>
     </div>
