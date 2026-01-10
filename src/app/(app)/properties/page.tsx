@@ -2,20 +2,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getProperties } from '@/lib/data';
+import { getProperties, updateUnitTypesFromCSV } from '@/lib/data';
 import type { Property } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, PlusCircle, Building2 } from 'lucide-react';
+import { Search, PlusCircle, Building2, Upload } from 'lucide-react';
 import Link from 'next/link';
+import { UnitCsvUploader } from '@/components/unit-csv-uploader';
 
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
+  const fetchProperties = () => {
     getProperties().then(setProperties);
+  }
+
+  useEffect(() => {
+    fetchProperties();
   }, []);
 
   const filteredProperties = properties.filter(property =>
@@ -39,6 +44,7 @@ export default function PropertiesPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+           <UnitCsvUploader onUploadComplete={fetchProperties} />
           <Button asChild>
             <Link href="/properties/add">
               <PlusCircle className="mr-2 h-4 w-4" />
