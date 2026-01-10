@@ -10,7 +10,8 @@ import { usePathname } from 'next/navigation';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const showHeader = !['/tenants', '/properties', '/water-meter/add', '/accounts'].includes(pathname);
+  const isPropertyDetailPage = /^\/properties\/[^/]+$/.test(pathname);
+  const showHeader = !['/tenants', '/properties', '/water-meter/add', '/accounts'].includes(pathname) && !isPropertyDetailPage;
   
   return (
     <AuthWrapper>
