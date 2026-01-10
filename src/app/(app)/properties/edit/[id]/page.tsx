@@ -73,7 +73,7 @@ export default function EditPropertyPage() {
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     if (property) {
-      await updateProperty(property.id, { units: data.units });
+      await updateProperty(property.id, data);
       router.push('/properties');
     }
   };
@@ -98,7 +98,7 @@ export default function EditPropertyPage() {
                     <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                        <Input {...field} readOnly className="bg-muted"/>
+                        <Input {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -111,7 +111,7 @@ export default function EditPropertyPage() {
                     <FormItem>
                     <FormLabel>Address</FormLabel>
                     <FormControl>
-                        <Input {...field} readOnly className="bg-muted"/>
+                        <Input {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -124,7 +124,7 @@ export default function EditPropertyPage() {
                     <FormItem>
                     <FormLabel>Type</FormLabel>
                     <FormControl>
-                        <Input {...field} readOnly className="bg-muted"/>
+                        <Input {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

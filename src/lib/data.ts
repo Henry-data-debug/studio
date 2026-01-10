@@ -70,15 +70,31 @@ export async function getTenant(id: string): Promise<Tenant | null> {
     return tenant;
 }
 
-export async function addTenant(tenantData: Omit<Tenant, 'id' | 'status'>): Promise<void> {
-    const { lease, securityDeposit, ...restOfTenantData } = tenantData;
+export async function addTenant({
+  name,
+  email,
+  phone,
+  idNumber,
+  propertyId,
+  unitName,
+  agent,
+  rent,
+  securityDeposit
+}: Omit<Tenant, 'id' | 'status' | 'lease'> & { rent: number; securityDeposit: number }): Promise<void> {
+
     const newTenantData = {
-        ...restOfTenantData,
+        name,
+        email,
+        phone,
+        idNumber,
+        propertyId,
+        unitName,
+        agent,
         status: 'active' as const,
         lease: {
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-            rent: lease.rent || 0,
+            rent: rent || 0,
             paymentStatus: 'Pending' as const
         },
         securityDeposit: securityDeposit || 0,
@@ -86,12 +102,12 @@ export async function addTenant(tenantData: Omit<Tenant, 'id' | 'status'>): Prom
     const tenantDocRef = await addDoc(collection(db, 'tenants'), newTenantData);
     
     // Mark unit as rented
-    const property = await getProperty(tenantData.propertyId);
+    const property = await getProperty(propertyId);
     if (property && property.units) {
         const updatedUnits = property.units.map(unit => 
-            unit.name === tenantData.unitName ? { ...unit, status: 'rented' as const } : unit
+            unit.name === unitName ? { ...unit, status: 'rented' as const } : unit
         );
-        const propertyRef = doc(db, 'properties', tenantData.propertyId);
+        const propertyRef = doc(db, 'properties', propertyId);
         await updateDoc(propertyRef, { units: updatedUnits });
     }
 
@@ -106,14 +122,14 @@ export async function addTenant(tenantData: Omit<Tenant, 'id' | 'status'>): Prom
 
     const secondaryAuth = getAuth(secondaryApp);
     try {
-        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, tenantData.email, tenantData.unitName);
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, unitName);
         const user = userCredential.user;
 
         // Create user profile in Firestore
-        await createUserProfile(user.uid, user.email || tenantData.email, 'tenant', { 
-            name: tenantData.name, 
+        await createUserProfile(user.uid, user.email || email, 'tenant', { 
+            name: name, 
             tenantId: tenantDocRef.id,
-            propertyId: tenantData.propertyId
+            propertyId: propertyId
         });
 
     } catch (error) {
@@ -133,9 +149,9 @@ export async function addProperty(property: Omit<Property, 'id' | 'imageId'>): P
     await addDoc(collection(db, 'properties'), { ...property, imageId: `property-${imageId}` });
 }
 
-export async function updateProperty(propertyId: string, data: { units: Unit[] }): Promise<void> {
+export async function updateProperty(propertyId: string, data: Partial<Property>): Promise<void> {
     const propertyRef = doc(db, 'properties', propertyId);
-    await updateDoc(propertyRef, { units: data.units });
+    await updateDoc(propertyRef, data);
 }
 
 export async function archiveTenant(tenantId: string): Promise<void> {
