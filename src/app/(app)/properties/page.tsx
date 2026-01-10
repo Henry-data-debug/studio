@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getProperties, updateUnitTypesFromCSV } from '@/lib/data';
+import { getProperties } from '@/lib/data';
 import type { Property } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
