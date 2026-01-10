@@ -12,44 +12,33 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
-    // Don't do anything until authentication status is fully loaded
     if (isLoading) {
-      return;
+      return; // Do nothing while loading
     }
 
     const onLoginPage = pathname === '/login';
+    const isTenantRoute = pathname.startsWith('/tenant');
     const isTenant = userProfile?.role === 'tenant';
 
-    // If user is authenticated
     if (isAuth) {
       if (onLoginPage) {
-        // If on login page, redirect to the correct dashboard
-        if (isTenant) {
-          router.push('/tenant/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
-      } else {
-        // If on another page, check if they are on the correct route for their role
-        const isTenantRoute = pathname.startsWith('/tenant');
-        const isAdminRoute = !isTenantRoute;
-
-        if (isTenant && isAdminRoute) {
-          router.push('/tenant/dashboard');
-        } else if (!isTenant && isTenantRoute) {
-          router.push('/dashboard');
-        }
+        // If authenticated and on login page, redirect to the correct dashboard
+        router.push(isTenant ? '/tenant/dashboard' : '/dashboard');
+      } else if (isTenant && !isTenantRoute) {
+        // If tenant is on an admin route, redirect to tenant dashboard
+        router.push('/tenant/dashboard');
+      } else if (!isTenant && isTenantRoute) {
+        // If admin/other is on a tenant route, redirect to admin dashboard
+        router.push('/dashboard');
       }
-    } 
-    // If user is not authenticated
-    else {
+    } else {
+      // If not authenticated, redirect to login page (unless already there)
       if (!onLoginPage) {
         router.push('/login');
       }
     }
   }, [isLoading, isAuth, userProfile, pathname, router]);
 
-  // Show a loader while authentication is in progress or if a necessary redirect hasn't happened yet.
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -58,8 +47,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     );
   }
 
-  // If we are not loading, but the user is not authenticated and not on the login page,
-  // we show a loader while redirecting to prevent a flash of content.
+  // If not authenticated and not on login page, show loader during redirect
   if (!isAuth && pathname !== '/login') {
       return (
         <div className="flex h-screen items-center justify-center">
@@ -68,15 +56,14 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       );
   }
 
-  // If the user is authenticated and on the login page, show a loader while redirecting.
+  // If authenticated and on login page, show loader during redirect
   if (isAuth && pathname === '/login') {
     return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader className="h-8 w-8 animate-spin" />
-        </div>
+      <div className="flex h-screen items-center justify-center">
+          <Loader className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
-  // If none of the above conditions are met, render the children.
   return <>{children}</>;
 }

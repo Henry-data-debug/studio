@@ -23,20 +23,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setIsLoading(true); // Start loading when auth state changes
       setUser(user);
       if (user) {
-        const profile = await getUserProfile(user.uid);
-        setUserProfile(profile);
+        try {
+          const profile = await getUserProfile(user.uid);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error("Failed to fetch user profile:", error);
+          setUserProfile(null);
+        }
       } else {
         setUserProfile(null);
       }
-      setIsLoading(false);
+      setIsLoading(false); // Stop loading after all async operations are done
     });
 
     return () => unsubscribe();
   }, []);
 
-  const isAuth = !!user && !!userProfile;
+  const isAuth = !!user;
 
   return (
     <AuthContext.Provider value={{ user, userProfile, isLoading, isAuth }}>
