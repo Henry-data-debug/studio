@@ -269,7 +269,6 @@ export default function AccountsPage() {
               <TableRow>
                 <TableHead>Tenant</TableHead>
                 <TableHead>Property</TableHead>
-                <TableHead>Lease End</TableHead>
                 <TableHead>Rent Amount</TableHead>
                 <TableHead className="text-right">Payment Status</TableHead>
               </TableRow>
@@ -285,7 +284,6 @@ export default function AccountsPage() {
                     <div>{getPropertyName(tenant.propertyId)}</div>
                     <div className="text-sm text-muted-foreground">Unit: {tenant.unitName}</div>
                   </TableCell>
-                  <TableCell>{tenant.lease.endDate}</TableCell>
                   <TableCell>Ksh {tenant.lease.rent.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Badge variant={getPaymentStatusVariant(tenant.lease.paymentStatus)}>

@@ -126,7 +126,6 @@ export default function TenantsPage() {
                                 <TableRow>
                                     <TableHead>Tenant</TableHead>
                                     <TableHead>Property</TableHead>
-                                    <TableHead>Lease Dates</TableHead>
                                     <TableHead>Rent</TableHead>
                                     <TableHead>Payment Status</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
@@ -142,9 +141,6 @@ export default function TenantsPage() {
                                         <TableCell>
                                             <div>{getPropertyName(tenant.propertyId)}</div>
                                             <div className="text-sm text-muted-foreground">Unit: {tenant.unitName}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {tenant.lease.startDate} - {tenant.lease.endDate}
                                         </TableCell>
                                         <TableCell>
                                             Ksh {tenant.lease.rent.toLocaleString()}
