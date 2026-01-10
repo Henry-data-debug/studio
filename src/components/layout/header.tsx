@@ -9,6 +9,7 @@ const titleMap: { [key: string]: string } = {
   '/dashboard': 'Dashboard',
   '/tenants': 'Tenants',
   '/leases': 'Lease Tracking',
+  '/accounts': 'Accounts',
   '/maintenance': 'Maintenance Requests',
   '/properties': 'Properties',
   '/documents': 'Documents',

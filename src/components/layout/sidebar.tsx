@@ -24,6 +24,7 @@ import {
   BedDouble,
   LogOut,
   Archive,
+  Banknote,
 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +36,7 @@ const navItems = [
   { href: '/tenants', icon: Users, label: 'Tenants' },
   { href: '/tenants/archived', icon: Archive, label: 'Archived Tenants'},
   { href: '/leases', icon: FileText, label: 'Lease Tracking' },
+  { href: '/accounts', icon: Banknote, label: 'Accounts'},
   { href: '/maintenance', icon: Wrench, label: 'Maintenance' },
   { href: '/properties', icon: Building2, label: 'Properties' },
 ];
