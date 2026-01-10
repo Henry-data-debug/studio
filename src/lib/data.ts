@@ -25,7 +25,7 @@ export async function getProperties(): Promise<Property[]> {
 }
 
 export async function getTenants(): Promise<Tenant[]> {
-    const q = query(collection(db, "tenants"), where("status", "==", "active"));
+    const q = query(collection(db, "tenants"), where("status", "!=", "archived"));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
 }
