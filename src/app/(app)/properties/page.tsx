@@ -1,126 +1,121 @@
-
 'use client';
 
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { getProperty } from '@/lib/data';
+import { Property, Unit } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getProperties } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { PlusCircle, Search } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
-import { Property } from '@/lib/types';
-import { Input } from '@/components/ui/input';
-import { UnitCsvUploader } from '@/components/unit-csv-uploader';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Edit, ArrowLeft } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default function PropertiesListPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const fetchProperties = () => {
-    getProperties().then(setProperties);
-  };
+export default function PropertyDetailsPage() {
+  const { id } = useParams();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  const getImage = (imageId: string) => {
-    return PlaceHolderImages.find((img) => img.id === imageId);
-  };
-
-  const filteredProperties = useMemo(() => {
-    if (!searchQuery) {
-      return properties;
+    if (id) {
+      getProperty(id as string).then((data) => {
+        setProperty(data);
+        setLoading(false);
+      });
     }
-    const lowercasedQuery = searchQuery.toLowerCase();
-    return properties.filter(
-      (property) =>
-        property.name.toLowerCase().includes(lowercasedQuery) ||
-        property.address.toLowerCase().includes(lowercasedQuery)
-    );
-  }, [searchQuery, properties]);
+  }, [id]);
 
-  if (properties.length === 0) {
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center">
-        <div className="flex items-center justify-between w-full mb-6">
-          <h2 className="text-2xl font-semibold">No Properties Found</h2>
-          <Button asChild>
-            <Link href="/properties/add">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Property
-            </Link>
-          </Button>
+        <div>
+            <Skeleton className="h-8 w-1/4 mb-4" />
+            <Skeleton className="h-4 w-1/2 mb-6" />
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/3" />
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
         </div>
-        <p className="mt-2 text-muted-foreground">
-          Get started by adding your first property.
-        </p>
+    );
+  }
+
+  if (!property) {
+    return (
+        <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-4">Property not found</h2>
+            <Button asChild>
+                <Link href="/properties">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Properties
+                </Link>
+            </Button>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between w-full mb-6">
-        <h2 className="text-2xl font-semibold">Properties</h2>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or address..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <UnitCsvUploader onUploadComplete={fetchProperties} />
-          <Button asChild>
-            <Link href="/properties/add">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Property
-            </Link>
-          </Button>
+    <div className="space-y-6">
+        <div className="flex items-center justify-between">
+            <div>
+                <Button asChild variant="ghost" className="mb-2">
+                    <Link href="/properties">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Properties
+                    </Link>
+                </Button>
+                <h1 className="text-3xl font-bold">{property.name}</h1>
+                <p className="text-muted-foreground">{property.address}</p>
+            </div>
+            <Button asChild>
+                <Link href={`/properties/edit/${property.id}`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Property
+                </Link>
+            </Button>
         </div>
-      </div>
-      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {filteredProperties.map((property) => {
-          const image = getImage(property.imageId);
-          return (
-            <Link href={`/properties/${property.id}`} key={property.id} className="block">
-              <Card className="overflow-hidden flex flex-col h-full hover:shadow-lg transition-shadow">
-                <div className="p-0">
-                  {image && (
-                    <div className="aspect-video relative w-full">
-                      <Image
-                        src={image.imageUrl}
-                        alt={image.description}
-                        data-ai-hint={image.imageHint}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                </div>
-                <CardHeader>
-                  <CardTitle>{property.name}</CardTitle>
-                  <CardDescription>{property.address}</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0 flex-grow">
-                  <p className="text-sm text-muted-foreground">{property.type}</p>
-                   <p className="text-sm font-medium mt-2">{Array.isArray(property.units) ? property.units.length : 0} Units</p>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle>Units</CardTitle>
+                <CardDescription>
+                    A list of all units in {property.name}.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Unit Name</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Ownership</TableHead>
+                            <TableHead>Status</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {property.units.map((unit, index) => (
+                            <TableRow key={index}>
+                                <TableCell className="font-medium">{unit.name}</TableCell>
+                                <TableCell>{unit.unitType}</TableCell>
+                                <TableCell>{unit.ownership}</TableCell>
+                                <TableCell>
+                                    <Badge variant={unit.status === 'vacant' ? 'secondary' : unit.status === 'client occupied' ? 'outline' : 'default'} className="capitalize">
+                                        {unit.status}
+                                    </Badge>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     </div>
   );
 }
