@@ -19,12 +19,14 @@ export default function AddTenantPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [vacantUnits, setVacantUnits] = useState<Unit[]>([]);
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [unitName, setUnitName] = useState('');
   const [agent, setAgent] = useState<Agent>();
+  const [rent, setRent] = useState(0);
 
   useEffect(() => {
     async function fetchProperties() {
@@ -59,6 +61,7 @@ export default function AddTenantPage() {
         propertyId: selectedProperty,
         unitName,
         agent,
+        rent,
       });
       toast({
         title: "Tenant Added",
@@ -130,19 +133,25 @@ export default function AddTenantPage() {
                 </Select>
             </div>
           </div>
-          <div>
-            <Label htmlFor="agent">Agent</Label>
-            <Select onValueChange={(value) => setAgent(value as Agent)} value={agent}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select an agent" />
-                </SelectTrigger>
-                <SelectContent>
-                    {agents.map(agent => (
-                        <SelectItem key={agent} value={agent}>{agent}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-          </div>
+           <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="agent">Agent</Label>
+                <Select onValueChange={(value) => setAgent(value as Agent)} value={agent}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select an agent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {agents.map(agent => (
+                            <SelectItem key={agent} value={agent}>{agent}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
+               <div>
+                <Label htmlFor="rent">Rent Amount</Label>
+                <Input id="rent" type="number" value={rent} onChange={(e) => setRent(Number(e.target.value))} required />
+            </div>
+           </div>
           <Button type="submit" disabled={!selectedProperty || !unitName || !agent}>Add Tenant</Button>
         </form>
       </CardContent>

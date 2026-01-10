@@ -1,4 +1,5 @@
 
+
 import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile } from '@/lib/types';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
@@ -37,7 +38,9 @@ export async function getArchivedTenants(): Promise<ArchivedTenant[]> {
 }
 
 export async function getMaintenanceRequests(): Promise<MaintenanceRequest[]> {
-    return getCollection<MaintenanceRequest>('maintenanceRequests');
+    const q = query(collection(db, "maintenanceRequests"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
 }
 
 export async function getProperty(id: string): Promise<Property | null> {
@@ -48,24 +51,27 @@ export async function getTenant(id: string): Promise<Tenant | null> {
     return getDocument<Tenant>('tenants', id);
 }
 
-export async function addTenant(tenant: Omit<Tenant, 'id' | 'lease' | 'status'>): Promise<void> {
-    const newTenantData = {
-        ...tenant,
+export async function addTenant(tenantData: Omit<Tenant, 'id' | 'lease' | 'status' | 'securityDeposit'>): Promise<void> {
+    const newTenant = {
+        ...tenantData,
         status: 'active' as const,
         lease: {
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-            rent: tenant.rent || 0,
+            rent: tenantData.rent || 0,
             paymentStatus: 'Pending' as const
-        }
+        },
+        securityDeposit: 0,
     };
-    await addDoc(collection(db, 'tenants'), newTenantData);
-    const property = await getProperty(tenant.propertyId);
+    await addDoc(collection(db, 'tenants'), newTenant);
+    
+    // Mark unit as rented
+    const property = await getProperty(tenantData.propertyId);
     if (property && property.units) {
         const updatedUnits = property.units.map(unit => 
-            unit.name === tenant.unitName ? { ...unit, status: 'rented' } : unit
+            unit.name === tenantData.unitName ? { ...unit, status: 'rented' as const } : unit
         );
-        const propertyRef = doc(db, 'properties', tenant.propertyId);
+        const propertyRef = doc(db, 'properties', tenantData.propertyId);
         await updateDoc(propertyRef, { units: updatedUnits });
     }
 }
@@ -133,14 +139,12 @@ export async function updateTenant(tenantId: string, tenantData: Partial<Tenant>
     }
 }
 
-export async function createUserProfile(userId: string, email: string, role: UserProfile['role'] = 'viewer', tenantId?: string, propertyId?: string, name?: string) {
+export async function createUserProfile(userId: string, email: string, role: UserProfile['role'], details: Partial<UserProfile> = {}) {
     const userProfileRef = doc(db, 'users', userId);
     await setDoc(userProfileRef, {
         email,
         role,
-        tenantId,
-        propertyId,
-        name
+        ...details,
     });
 }
 
@@ -160,7 +164,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     return null;
 }
 
-export async function addMaintenanceRequest(request: Omit<MaintenanceRequest, 'id' | 'date' | 'status'>) {
+export async function addMaintenanceRequest(request: Omit<MaintenanceRequest, 'id' | 'date' | 'status' | 'createdAt'>) {
     await addDoc(collection(db, 'maintenanceRequests'), {
         ...request,
         date: new Date().toISOString().split('T')[0],
