@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { createUserProfile } from '@/lib/data';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,7 +27,8 @@ export default function LoginPage() {
   const handleSignUp = async () => {
     setError(null);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await createUserProfile(userCredential.user.uid, userCredential.user.email || email, 'viewer');
       alert('Sign up successful! You can now log in with the credentials you just created.');
     } catch (error: any) {
       setError(error.message);

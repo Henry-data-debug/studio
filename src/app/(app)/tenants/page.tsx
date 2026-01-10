@@ -19,10 +19,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
 
 export default function TenantsPage() {
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [properties, setProperties] = useState<Property[]>([]);
+    const { toast } = useToast();
 
     useEffect(() => {
         getTenants().then(setTenants);
@@ -32,6 +34,10 @@ export default function TenantsPage() {
     const handleArchive = async (tenantId: string) => {
         await archiveTenant(tenantId);
         setTenants(tenants.filter(t => t.id !== tenantId));
+        toast({
+            title: "Tenant Archived",
+            description: "The tenant has been moved to the archived list.",
+        });
     };
 
     const getPropertyName = (propertyId: string) => {

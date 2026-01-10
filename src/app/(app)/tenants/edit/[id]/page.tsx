@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tenant, Property, agents } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -29,6 +30,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function EditTenantPage() {
     const { id } = useParams();
     const router = useRouter();
+    const { toast } = useToast();
     const [tenant, setTenant] = useState<Tenant | null>(null);
     const [properties, setProperties] = useState<Property[]>([]);
     const [units, setUnits] = useState<string[]>([]);
@@ -59,15 +61,37 @@ export default function EditTenantPage() {
     }, [id, form]);
 
     useEffect(() => {
-        const selectedProperty = properties.find(p => p.id === form.watch('propertyId'));
+        const selectedPropertyId = form.watch('propertyId');
+        const selectedProperty = properties.find(p => p.id === selectedPropertyId);
+        
         if (selectedProperty) {
-            setUnits(selectedProperty.units.map(u => u.name));
+            // All units from the newly selected property
+            const allUnits = selectedProperty.units.map(u => u.name);
+            
+            // Vacant units from the newly selected property
+            const vacantUnits = selectedProperty.units.filter(u => u.status === 'vacant').map(u => u.name);
+            
+            let availableUnits = [...vacantUnits];
+            
+            // If the selected property is the tenant's original property, also include their current unit
+            if (tenant && selectedPropertyId === tenant.propertyId && !availableUnits.includes(tenant.unitName)) {
+                availableUnits.push(tenant.unitName);
+            }
+            
+            setUnits(availableUnits);
+        } else {
+            setUnits([]);
         }
-    }, [form.watch('propertyId'), properties]);
+
+    }, [form.watch('propertyId'), properties, tenant]);
 
     const onSubmit: SubmitHandler<FormValues> = async (data) => {
         if (tenant) {
             await updateTenant(tenant.id, data);
+            toast({
+                title: "Tenant Updated",
+                description: "The tenant's details have been successfully updated.",
+            });
             router.push('/tenants');
         }
     };
@@ -166,7 +190,7 @@ export default function EditTenantPage() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Unit</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a unit" />
@@ -190,7 +214,7 @@ export default function EditTenantPage() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Agent</FormLabel>
-                                    <Select onValuechange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select an agent" />

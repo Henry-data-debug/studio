@@ -39,11 +39,25 @@ export type Tenant = {
   };
 };
 
+export type ArchivedTenant = Tenant & {
+    archivedAt: string;
+}
+
 export type MaintenanceRequest = {
   id: string;
-  tenant: Tenant;
-  property: Property;
-  description: string;
-  status: 'pending' | 'in-progress' | 'completed';
-  createdAt: string;
+  tenantId: string;
+  propertyId: string;
+  date: string;
+  details: string;
+  urgency: 'high' | 'medium' | 'low';
+  status: 'New' | 'In Progress' | 'Completed';
 };
+
+export type UserRole = 'admin' | 'viewer' | 'agent';
+
+export type UserProfile = {
+    id: string;
+    email: string;
+    role: UserRole;
+    name?: string;
+}

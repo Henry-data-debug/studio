@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getProperties, addTenant } from '@/lib/data';
 import { agents } from '@/lib/types';
 import type { Property, Unit, Agent } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AddTenantPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [vacantUnits, setVacantUnits] = useState<Unit[]>([]);
@@ -40,6 +43,7 @@ export default function AddTenantPage() {
     } else {
       setVacantUnits([]);
     }
+    setUnitName('');
   }, [selectedProperty, properties]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,9 +60,18 @@ export default function AddTenantPage() {
         unitName,
         agent,
       });
+      toast({
+        title: "Tenant Added",
+        description: `${name} has been added as a new tenant.`,
+      });
       router.push('/tenants');
     } catch (error) {
       console.error('Error adding tenant:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add tenant. Please try again.",
+      });
     }
   };
 
@@ -119,7 +132,7 @@ export default function AddTenantPage() {
           </div>
           <div>
             <Label htmlFor="agent">Agent</Label>
-            <Select onValueChange={setAgent} value={agent}>
+            <Select onValueChange={(value) => setAgent(value as Agent)} value={agent}>
                 <SelectTrigger>
                     <SelectValue placeholder="Select an agent" />
                 </SelectTrigger>

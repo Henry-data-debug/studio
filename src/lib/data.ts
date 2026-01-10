@@ -1,5 +1,5 @@
 
-import type { Property, Tenant, MaintenanceRequest, Unit } from '@/lib/types';
+import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant } from '@/lib/types';
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc } from 'firebase/firestore';
 
@@ -28,6 +28,12 @@ export async function getTenants(): Promise<Tenant[]> {
     const q = query(collection(db, "tenants"), where("status", "==", "active"));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
+}
+
+export async function getArchivedTenants(): Promise<ArchivedTenant[]> {
+    const q = query(collection(db, "tenants"), where("status", "==", "archived"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ArchivedTenant));
 }
 
 export async function getMaintenanceRequests(): Promise<MaintenanceRequest[]> {
@@ -83,7 +89,10 @@ export async function archiveTenant(tenantId: string): Promise<void> {
     const tenant = await getTenant(tenantId);
     if (tenant) {
         const tenantRef = doc(db, 'tenants', tenantId);
-        await updateDoc(tenantRef, { status: 'archived' });
+        await updateDoc(tenantRef, { 
+            status: 'archived',
+            archivedAt: new Date().toISOString()
+        });
 
         const property = await getProperty(tenant.propertyId);
         if (property && property.units) {
@@ -122,4 +131,21 @@ export async function updateTenant(tenantId: string, tenantData: Partial<Tenant>
             }
         }
     }
+}
+
+export async function createUserProfile(userId: string, email: string, role: 'admin' | 'viewer' | 'agent' = 'viewer') {
+    const userProfileRef = doc(db, 'users', userId);
+    await setDoc(userProfileRef, {
+        email,
+        role,
+    });
+}
+
+export async function getUserProfile(userId: string) {
+    const userProfileRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(userProfileRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+    }
+    return null;
 }
