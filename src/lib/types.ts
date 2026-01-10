@@ -15,9 +15,12 @@ export const ownershipTypes: OwnershipType[] = ['SM', 'Landlord'];
 export type UnitType = 'Studio' | 'One Bedroom' | 'Two Bedroom';
 export const unitTypes: UnitType[] = ['Studio', 'One Bedroom', 'Two Bedroom'];
 
+export type UnitStatus = 'vacant' | 'rented' | 'client occupied';
+export const unitStatuses: UnitStatus[] = ['vacant', 'rented', 'client occupied'];
+
 export type Unit = {
   name: string;
-  status: 'vacant' | 'rented';
+  status: UnitStatus;
   ownership: OwnershipType;
   unitType: UnitType;
 };

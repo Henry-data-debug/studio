@@ -11,13 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Property, ownershipTypes, Unit, unitTypes, OwnershipType, UnitType } from '@/lib/types';
+import { Property, ownershipTypes, Unit, unitTypes, unitStatuses } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 
 const unitSchema = z.object({
   name: z.string(),
-  status: z.enum(['vacant', 'rented']),
+  status: z.enum(unitStatuses),
   ownership: z.enum(ownershipTypes),
   unitType: z.enum(unitTypes),
 });
@@ -63,7 +63,8 @@ export default function EditPropertyPage() {
             units: propertyData.units.map(u => ({
               ...u,
               ownership: u.ownership || 'SM', 
-              unitType: u.unitType || 'Studio'
+              unitType: u.unitType || 'Studio',
+              status: u.status || 'vacant'
             })) || [],
           });
         }
@@ -138,7 +139,7 @@ export default function EditPropertyPage() {
                 <h3 className="text-lg font-medium mb-4">Units</h3>
                 <div className="space-y-4">
                 {fields.map((field, index) => (
-                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end p-4 border rounded-lg">
+                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1fr] gap-4 items-end p-4 border rounded-lg">
                         <FormField
                             control={form.control}
                             name={`units.${index}.name`}
@@ -149,6 +150,30 @@ export default function EditPropertyPage() {
                                         <Input {...field} readOnly className="bg-muted" />
                                     </FormControl>
                                     <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name={`units.${index}.status`}
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Rental Status</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {unitStatuses.map((status) => (
+                                        <SelectItem key={status} value={status} className="capitalize">
+                                        {status}
+                                        </SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
                                 </FormItem>
                             )}
                         />
