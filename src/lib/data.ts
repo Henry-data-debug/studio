@@ -1,7 +1,7 @@
 
 import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile } from '@/lib/types';
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 
 async function getCollection<T>(collectionName: string): Promise<T[]> {
   const querySnapshot = await getDocs(collection(db, collectionName));
@@ -133,11 +133,14 @@ export async function updateTenant(tenantId: string, tenantData: Partial<Tenant>
     }
 }
 
-export async function createUserProfile(userId: string, email: string, role: UserProfile['role'] = 'viewer') {
+export async function createUserProfile(userId: string, email: string, role: UserProfile['role'] = 'viewer', tenantId?: string, propertyId?: string, name?: string) {
     const userProfileRef = doc(db, 'users', userId);
     await setDoc(userProfileRef, {
         email,
         role,
+        tenantId,
+        propertyId,
+        name
     });
 }
 
@@ -148,4 +151,23 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
         return { id: docSnap.id, ...docSnap.data() } as UserProfile;
     }
     return null;
+}
+
+export async function addMaintenanceRequest(request: Omit<MaintenanceRequest, 'id' | 'date' | 'status'>) {
+    await addDoc(collection(db, 'maintenanceRequests'), {
+        ...request,
+        date: new Date().toISOString().split('T')[0],
+        createdAt: serverTimestamp(),
+        status: 'New',
+    });
+}
+
+export async function getTenantMaintenanceRequests(tenantId: string): Promise<MaintenanceRequest[]> {
+    const q = query(
+        collection(db, "maintenanceRequests"), 
+        where("tenantId", "==", tenantId),
+        orderBy("createdAt", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
 }

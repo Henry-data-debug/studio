@@ -51,6 +51,7 @@ export type MaintenanceRequest = {
   details: string;
   urgency: 'high' | 'medium' | 'low';
   status: 'New' | 'In Progress' | 'Completed';
+  createdAt: Date;
 };
 
 export type UserRole = 'admin' | 'viewer' | 'agent' | 'tenant';
@@ -60,4 +61,6 @@ export type UserProfile = {
     email: string;
     role: UserRole;
     name?: string;
+    tenantId?: string;
+    propertyId?: string;
 }

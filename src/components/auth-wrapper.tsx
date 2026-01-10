@@ -8,48 +8,35 @@ import { useEffect, useState } from 'react';
 import { Loader } from 'lucide-react';
 import { getUserProfile } from '@/lib/data';
 import { UserProfile } from '@/lib/types';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { isLoading, userProfile, isAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const profile = await getUserProfile(user.uid);
-        setUserProfile(profile);
+    if (!isLoading) {
+      if (isAuth && userProfile) {
+        const isTenantRoute = pathname.startsWith('/tenant');
+        const isAdminRoute = !isTenantRoute && pathname !== '/login';
 
-        if (profile) {
-          const isTenantRoute = pathname.startsWith('/tenant');
-          const isAdminRoute = !isTenantRoute && pathname !== '/login';
-
-          if (profile.role === 'admin' || profile.role === 'agent' || profile.role === 'viewer') {
-            if (isTenantRoute) {
-              router.push('/dashboard');
-            }
-          } else if (profile.role === 'tenant') {
-            if (isAdminRoute) {
-              router.push('/tenant/dashboard');
-            }
+        if (userProfile.role === 'admin' || userProfile.role === 'agent' || userProfile.role === 'viewer') {
+          if (isTenantRoute) {
+            router.push('/dashboard');
           }
-        } else {
-           if (pathname !== '/login') {
-             router.push('/login');
-           }
+        } else if (userProfile.role === 'tenant') {
+          if (isAdminRoute) {
+            router.push('/tenant/dashboard');
+          }
         }
       } else {
-        setUserProfile(null);
         if (pathname !== '/login') {
           router.push('/login');
         }
       }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [router, pathname]);
+    }
+  }, [isLoading, isAuth, userProfile, pathname, router]);
 
   if (isLoading) {
     return (
@@ -59,13 +46,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     );
   }
 
-  const isAuth = !!userProfile;
-
   if (!isAuth && pathname !== '/login') {
     return null;
   }
   
-  if(isAuth && pathname === '/login') {
+  if (isAuth && pathname === '/login' && userProfile) {
     if (userProfile.role === 'tenant') {
         router.push('/tenant/dashboard');
     } else {
