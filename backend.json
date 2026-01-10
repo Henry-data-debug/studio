@@ -51,7 +51,7 @@
       "units": [
         { "name": "GMAnnex 10-A", "status": "rented", "ownership": "SM", "unitType": "Two Bedroom", "tenant": { "id": "tenant-2", "name": "Jane Smith", "email": "jane.smith@example.com", "phone": "555-5678", "lease": { "id": "lease-2", "startDate": "2023-09-01", "endDate": "2024-08-31", "rent": 1850, "paymentStatus": "Pending" } } },
         { "name": "GMAnnex 10-B", "status": "vacant", "ownership": "Landlord", "unitType": "One Bedroom" },
-        { "name": "GMAnnex 10-C", "status": "client occupied", "ownership": "SM", "unitType": "One Bedroom" }
+        { "name": "GMAnnex 10-C", "status": "Handed Over", "ownership": "SM", "unitType": "One Bedroom" }
       ]
     },
     {

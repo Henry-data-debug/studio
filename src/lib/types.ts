@@ -12,11 +12,11 @@ export type Property = {
 export type OwnershipType = 'SM' | 'Landlord';
 export const ownershipTypes: OwnershipType[] = ['SM', 'Landlord'];
 
-export type UnitType = 'Studio' | 'One Bedroom' | 'Two Bedroom';
-export const unitTypes: UnitType[] = ['Studio', 'One Bedroom', 'Two Bedroom'];
+export type UnitType = 'Studio' | 'One Bedroom' | 'Two Bedroom' | 'Shop';
+export const unitTypes: UnitType[] = ['Studio', 'One Bedroom', 'Two Bedroom', 'Shop'];
 
-export type UnitStatus = 'vacant' | 'rented' | 'client occupied';
-export const unitStatuses: UnitStatus[] = ['vacant', 'rented', 'client occupied'];
+export type UnitStatus = 'vacant' | 'rented' | 'client occupied' | 'Handed Over';
+export const unitStatuses: UnitStatus[] = ['vacant', 'rented', 'client occupied', 'Handed Over'];
 
 export type Unit = {
   name: string;
