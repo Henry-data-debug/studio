@@ -26,23 +26,29 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-function AddPaymentDialog({ tenants, onPaymentAdded }: { tenants: Tenant[], onPaymentAdded: () => void }) {
+function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties: Property[], tenants: Tenant[], onPaymentAdded: () => void }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedPropertyId, setSelectedPropertyId] = useState('');
     const [selectedTenantId, setSelectedTenantId] = useState('');
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [notes, setNotes] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
+    const tenantsInProperty = useMemo(() => {
+        if (!selectedPropertyId) return [];
+        return tenants.filter(tenant => tenant.propertyId === selectedPropertyId);
+    }, [selectedPropertyId, tenants]);
+
     const filteredTenants = useMemo(() => {
-        if (!searchQuery) return tenants;
-        return tenants.filter(tenant => 
+        if (!searchQuery) return tenantsInProperty;
+        return tenantsInProperty.filter(tenant => 
             tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             tenant.unitName.toLowerCase().includes(searchQuery.toLowerCase())
         );
-    }, [searchQuery, tenants]);
+    }, [searchQuery, tenantsInProperty]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,6 +68,7 @@ function AddPaymentDialog({ tenants, onPaymentAdded }: { tenants: Tenant[], onPa
             onPaymentAdded();
             setOpen(false);
             // Reset form
+            setSelectedPropertyId('');
             setSelectedTenantId('');
             setAmount('');
             setDate(new Date());
@@ -89,6 +96,20 @@ function AddPaymentDialog({ tenants, onPaymentAdded }: { tenants: Tenant[], onPa
                 <form onSubmit={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
+                             <Label htmlFor="development">Development</Label>
+                             <Select onValueChange={setSelectedPropertyId} value={selectedPropertyId}>
+                                <SelectTrigger id="development">
+                                    <SelectValue placeholder="Select a development" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {properties.map(prop => (
+                                        <SelectItem key={prop.id} value={prop.id}>{prop.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                         <div className="space-y-2">
                              <Label htmlFor="search">Search Tenant</Label>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -98,12 +119,13 @@ function AddPaymentDialog({ tenants, onPaymentAdded }: { tenants: Tenant[], onPa
                                     className="pl-10"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    disabled={!selectedPropertyId}
                                 />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="tenant">Tenant</Label>
-                            <Select onValueChange={setSelectedTenantId} value={selectedTenantId}>
+                            <Select onValueChange={setSelectedTenantId} value={selectedTenantId} disabled={!selectedPropertyId}>
                                 <SelectTrigger id="tenant">
                                     <SelectValue placeholder="Select a tenant" />
                                 </SelectTrigger>
@@ -217,7 +239,7 @@ export default function AccountsPage() {
                 <h2 className="text-3xl font-bold tracking-tight">Accounts Dashboard</h2>
                 <p className="text-muted-foreground">A financial overview of your properties.</p>
             </div>
-            <AddPaymentDialog tenants={tenants} onPaymentAdded={fetchAllData} />
+            <AddPaymentDialog properties={properties} tenants={tenants} onPaymentAdded={fetchAllData} />
       </div>
 
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
