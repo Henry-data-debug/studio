@@ -57,25 +57,25 @@ export async function getTenant(id: string): Promise<Tenant | null> {
         const readingsQuery = query(
             collection(db, 'waterReadings'), 
             where('tenantId', '==', id),
-            limit(12)
         );
         const readingsSnapshot = await getDocs(readingsQuery);
         const readings = readingsSnapshot.docs.map(doc => doc.data() as WaterMeterReading);
         // Sort in-memory to avoid needing a composite index
         readings.sort((a, b) => (b.createdAt as any) - (a.createdAt as any));
-        tenant.waterReadings = readings;
+        tenant.waterReadings = readings.slice(0, 12);
     }
     return tenant;
 }
 
-export async function addTenant(tenantData: Omit<Tenant, 'id' | 'lease' | 'status'>): Promise<void> {
+export async function addTenant(tenantData: Omit<Tenant, 'id' | 'lease' | 'status'> & {rent: number}): Promise<void> {
+    const { rent, ...restOfTenantData } = tenantData;
     const newTenantData = {
-        ...tenantData,
+        ...restOfTenantData,
         status: 'active' as const,
         lease: {
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-            rent: tenantData.rent || 0,
+            rent: rent || 0,
             paymentStatus: 'Pending' as const
         },
     };

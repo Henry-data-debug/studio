@@ -55,7 +55,6 @@ export type Tenant = {
   unitName: string;
   agent: Agent;
   status: 'active' | 'archived';
-  rent: number;
   securityDeposit: number;
   lease: {
     startDate: string;
