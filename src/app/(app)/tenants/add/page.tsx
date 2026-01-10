@@ -148,7 +148,7 @@ export default function AddTenantPage() {
                 </Select>
               </div>
                <div>
-                <Label htmlFor="rent">Rent Amount</Label>
+                <Label htmlFor="rent">Rent Amount (Ksh)</Label>
                 <Input id="rent" type="number" value={rent} onChange={(e) => setRent(Number(e.target.value))} required />
             </div>
            </div>

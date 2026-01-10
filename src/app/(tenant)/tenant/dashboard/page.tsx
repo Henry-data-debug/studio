@@ -122,7 +122,7 @@ export default function TenantDashboardPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${tenantDetails.lease.rent.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">Ksh {tenantDetails.lease.rent.toLocaleString()}</div>
                         <Badge variant={getPaymentStatusVariant(tenantDetails.lease.paymentStatus)} className="mt-1">
                             {tenantDetails.lease.paymentStatus}
                         </Badge>
@@ -134,7 +134,7 @@ export default function TenantDashboardPage() {
                         <Home className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${tenantDetails.securityDeposit.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">Ksh {tenantDetails.securityDeposit.toLocaleString()}</div>
                          <p className="text-xs text-muted-foreground">Held by property management</p>
                     </CardContent>
                 </Card>

@@ -63,9 +63,9 @@ export default function AccountsPage() {
   const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
   
   const stats = [
-    { title: "Rent Collected", value: `$${financialSummary.collected.toLocaleString()}`, icon: DollarSign, color: "text-green-500" },
-    { title: "Rent Pending", value: `$${financialSummary.pending.toLocaleString()}`, icon: Users, color: "text-yellow-500" },
-    { title: "Rent Overdue", value: `$${financialSummary.overdue.toLocaleString()}`, icon: UserX, color: "text-red-500" },
+    { title: "Rent Collected", value: `Ksh ${financialSummary.collected.toLocaleString()}`, icon: DollarSign, color: "text-green-500" },
+    { title: "Rent Pending", value: `Ksh ${financialSummary.pending.toLocaleString()}`, icon: Users, color: "text-yellow-500" },
+    { title: "Rent Overdue", value: `Ksh ${financialSummary.overdue.toLocaleString()}`, icon: UserX, color: "text-red-500" },
     { title: "Occupancy Rate", value: `${occupancyRate.toFixed(1)}%`, icon: Percent, color: "text-blue-500" },
   ];
 
@@ -119,7 +119,7 @@ export default function AccountsPage() {
                     <div className="text-sm text-muted-foreground">Unit: {tenant.unitName}</div>
                   </TableCell>
                   <TableCell>{tenant.lease.endDate}</TableCell>
-                  <TableCell>${tenant.lease.rent.toLocaleString()}</TableCell>
+                  <TableCell>Ksh {tenant.lease.rent.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Badge variant={getPaymentStatusVariant(tenant.lease.paymentStatus)}>
                       {tenant.lease.paymentStatus}

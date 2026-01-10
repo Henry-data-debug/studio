@@ -147,7 +147,7 @@ export default function TenantsPage() {
                                             {tenant.lease.startDate} - {tenant.lease.endDate}
                                         </TableCell>
                                         <TableCell>
-                                            ${tenant.lease.rent.toLocaleString()}
+                                            Ksh {tenant.lease.rent.toLocaleString()}
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={getPaymentStatusVariant(tenant.lease.paymentStatus)}>
