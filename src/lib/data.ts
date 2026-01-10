@@ -1,7 +1,8 @@
 
-
+import { initializeApp, getApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile, WaterMeterReading, Payment } from '@/lib/types';
-import { db } from './firebase';
+import { db, firebaseConfig } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc, serverTimestamp, orderBy, limit, arrayUnion } from 'firebase/firestore';
 
 const WATER_RATE = 150; // Ksh per unit
@@ -65,8 +66,8 @@ export async function getTenant(id: string): Promise<Tenant | null> {
     return tenant;
 }
 
-export async function addTenant(tenantData: Omit<Tenant, 'id' | 'lease' | 'status' | 'securityDeposit'>): Promise<void> {
-    const newTenant = {
+export async function addTenant(tenantData: Omit<Tenant, 'id' | 'lease' | 'status'>): Promise<void> {
+    const newTenantData = {
         ...tenantData,
         status: 'active' as const,
         lease: {
@@ -75,9 +76,8 @@ export async function addTenant(tenantData: Omit<Tenant, 'id' | 'lease' | 'statu
             rent: tenantData.rent || 0,
             paymentStatus: 'Pending' as const
         },
-        securityDeposit: tenantData.securityDeposit || 0,
     };
-    await addDoc(collection(db, 'tenants'), newTenant);
+    const tenantDocRef = await addDoc(collection(db, 'tenants'), newTenantData);
     
     // Mark unit as rented
     const property = await getProperty(tenantData.propertyId);
@@ -87,6 +87,36 @@ export async function addTenant(tenantData: Omit<Tenant, 'id' | 'lease' | 'statu
         );
         const propertyRef = doc(db, 'properties', tenantData.propertyId);
         await updateDoc(propertyRef, { units: updatedUnits });
+    }
+
+    // Create Firebase Auth user for the tenant
+    const appName = 'tenant-creation-app';
+    let secondaryApp;
+    try {
+        secondaryApp = getApp(appName);
+    } catch (e) {
+        secondaryApp = initializeApp(firebaseConfig, appName);
+    }
+
+    const secondaryAuth = getAuth(secondaryApp);
+    try {
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, tenantData.email, tenantData.unitName);
+        const user = userCredential.user;
+
+        // Create user profile in Firestore
+        await createUserProfile(user.uid, user.email || tenantData.email, 'tenant', { 
+            name: tenantData.name, 
+            tenantId: tenantDocRef.id,
+            propertyId: tenantData.propertyId
+        });
+
+    } catch (error) {
+        console.error("Error creating tenant auth user:", error);
+        // If auth user creation fails, we should ideally roll back the tenant creation.
+        // For now, we'll log the error.
+        throw new Error("Failed to create tenant login credentials.");
+    } finally {
+        await deleteApp(secondaryApp);
     }
 }
 
@@ -159,7 +189,7 @@ export async function createUserProfile(userId: string, email: string, role: Use
         email,
         role,
         ...details,
-    });
+    }, { merge: true });
 }
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {

@@ -12,6 +12,7 @@ import { getProperties, addTenant } from '@/lib/data';
 import { agents } from '@/lib/types';
 import type { Property, Unit, Agent } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function AddTenantPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function AddTenantPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [vacantUnits, setVacantUnits] = useState<Unit[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,6 +29,7 @@ export default function AddTenantPage() {
   const [unitName, setUnitName] = useState('');
   const [agent, setAgent] = useState<Agent>();
   const [rent, setRent] = useState(0);
+  const [securityDeposit, setSecurityDeposit] = useState(0);
 
   useEffect(() => {
     async function fetchProperties() {
@@ -52,6 +55,7 @@ export default function AddTenantPage() {
     e.preventDefault();
     if (!selectedProperty || !unitName || !agent) return;
 
+    setIsLoading(true);
     try {
       await addTenant({
         name,
@@ -62,10 +66,11 @@ export default function AddTenantPage() {
         unitName,
         agent,
         rent,
+        securityDeposit,
       });
       toast({
         title: "Tenant Added",
-        description: `${name} has been added as a new tenant.`,
+        description: `${name} has been added and their login credentials have been created.`,
       });
       router.push('/tenants');
     } catch (error) {
@@ -75,6 +80,8 @@ export default function AddTenantPage() {
         title: "Error",
         description: "Failed to add tenant. Please try again.",
       });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -152,7 +159,16 @@ export default function AddTenantPage() {
                 <Input id="rent" type="number" value={rent} onChange={(e) => setRent(Number(e.target.value))} required />
             </div>
            </div>
-          <Button type="submit" disabled={!selectedProperty || !unitName || !agent}>Add Tenant</Button>
+           <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="securityDeposit">Security Deposit (Ksh)</Label>
+                <Input id="securityDeposit" type="number" value={securityDeposit} onChange={(e) => setSecurityDeposit(Number(e.target.value))} required />
+              </div>
+           </div>
+          <Button type="submit" disabled={!selectedProperty || !unitName || !agent || isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Add Tenant
+          </Button>
         </form>
       </CardContent>
     </Card>

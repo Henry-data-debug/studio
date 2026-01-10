@@ -9,7 +9,7 @@ import { getAuth } from "firebase/auth"; // Make sure to import getAuth
 // Your web app's Firebase configuration
 // For more information on how to get this object, see the link below
 // https://firebase.google.com/docs/web/learn-more#config-object
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyBmM3eJxNrPWHzbjbfY2wWlEMEJHFKcTCA",
   authDomain: "studio-3511865139-8f049.firebaseapp.com",
   projectId: "studio-3511865139-8f049",
