@@ -1,6 +1,5 @@
 
 
-
 import { initializeApp, getApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile, WaterMeterReading, Payment, UnitType, OwnershipType, Log, Landlord } from '@/lib/types';
@@ -325,12 +324,54 @@ export async function updateUnitTypesFromCSV(data: { PropertyName: string; UnitN
 
 
 // Landlord Functions
+export async function getLandlords(): Promise<Landlord[]> {
+    return getCollection<Landlord>('landlords');
+}
+
 export async function getLandlord(landlordId: string): Promise<Landlord | null> {
     return getDocument<Landlord>('landlords', landlordId);
 }
 
 export async function updateLandlord(landlordId: string, data: Partial<Landlord>): Promise<void> {
     const landlordRef = doc(db, 'landlords', landlordId);
-    await setDoc(landlordRef, data, { merge: true });
-    await logActivity(`Updated landlord details for ID: ${landlordId}`);
+    let userId = data.userId;
+
+    // Create auth user if email and phone are provided and user doesn't exist
+    if (data.email && data.phone && !userId) {
+        const appName = 'landlord-creation-app-' + data.email;
+        let secondaryApp;
+        try {
+            secondaryApp = getApp(appName);
+        } catch (e) {
+            secondaryApp = initializeApp(firebaseConfig, appName);
+        }
+
+        const secondaryAuth = getAuth(secondaryApp);
+        try {
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.phone);
+            userId = userCredential.user.uid;
+            
+            await createUserProfile(userId, data.email, 'landlord', { name: data.name, landlordId: landlordId });
+            await logActivity(`Created landlord user: ${data.email}`);
+        } catch (error: any) {
+            console.error("Error creating landlord auth user:", error);
+            if (error.code !== 'auth/email-already-in-use') {
+                throw new Error("Failed to create landlord login credentials.");
+            }
+            // If email is in use, we should try to find the user and link them if they are not already.
+            // This part can be complex and is omitted for now for simplicity.
+        } finally {
+            if (secondaryApp) {
+                await deleteApp(secondaryApp);
+            }
+        }
+    }
+
+    const finalData = { ...data };
+    if (userId) {
+        finalData.userId = userId;
+    }
+
+    await setDoc(landlordRef, finalData, { merge: true });
+    await logActivity(`Updated landlord details for: ${data.name || 'ID ' + landlordId}`);
 }

@@ -2,50 +2,71 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getProperties, getLandlord, updateLandlord } from '@/lib/data';
+import { getProperties, getLandlords, updateLandlord } from '@/lib/data';
 import type { Property, Landlord } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Edit } from 'lucide-react';
 import { ManageLandlordDialog } from '@/components/manage-landlord-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ClientsPage() {
   const [allProperties, setAllProperties] = useState<Property[]>([]);
-  const [landlordProperties, setLandlordProperties] = useState<Property[]>([]);
+  const [landlords, setLandlords] = useState<Landlord[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [landlord, setLandlord] = useState<Landlord | null>(null);
+  const [selectedLandlord, setSelectedLandlord] = useState<Landlord | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const fetchData = async () => {
+      const [props, lords] = await Promise.all([getProperties(), getLandlords()]);
+      setAllProperties(props);
+      setLandlords(lords);
+  }
 
   useEffect(() => {
-    async function fetchData() {
-      const props = await getProperties();
-      setAllProperties(props);
-      const filtered = props.filter(p => Array.isArray(p.units) && p.units.some(u => u.ownership === 'Landlord'));
-      setLandlordProperties(filtered);
-    }
     fetchData();
   }, []);
+  
+  const landlordProperties = allProperties.filter(p => Array.isArray(p.units) && p.units.some(u => u.ownership === 'Landlord'));
 
   const handleManageClick = async (property: Property) => {
     setSelectedProperty(property);
-    // This assumes a landlord is associated with a property, for simplicity.
-    // In a real app, you might have a more complex mapping.
-    // We'll use the property ID as a stand-in for the landlord ID.
-    const landlordId = property.id;
-    const landlordData = await getLandlord(landlordId);
-    setLandlord(landlordData ?? { id: landlordId, name: '', bankAccount: '', earnings: 0 });
+    // Find an existing landlord associated with any unit in this property
+    const unitWithLandlord = property.units.find(u => u.landlordId);
+    let landlordId = unitWithLandlord?.landlordId;
+    let landlordData: Landlord | null = null;
+    
+    if (landlordId) {
+        landlordData = await getLandlord(landlordId);
+    }
+
+    // For simplicity, we'll create a new potential landlord ID based on the property if none is found.
+    // A more robust system might have a dedicated "Create Landlord" flow.
+    if (!landlordData) {
+        landlordId = property.id; // Using property ID as a temporary, unique ID for a new landlord
+        landlordData = { id: landlordId, name: '', email: '', phone: '', bankAccount: '', earnings: 0 };
+    }
+    
+    setSelectedLandlord(landlordData);
     setIsDialogOpen(true);
   };
   
   const handleDialogClose = () => {
     setIsDialogOpen(false);
     setSelectedProperty(null);
-    setLandlord(null);
+    setSelectedLandlord(null);
   }
   
   const handleSaveLandlord = async (landlordData: Landlord) => {
-    await updateLandlord(landlordData.id, landlordData);
-    handleDialogClose();
+    try {
+        await updateLandlord(landlordData.id, landlordData);
+        toast({ title: 'Landlord Saved', description: `Details for ${landlordData.name} have been saved.` });
+        fetchData(); // Refresh landlord data
+        handleDialogClose();
+    } catch(error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to save landlord.' });
+    }
   }
 
   return (
@@ -96,11 +117,11 @@ export default function ClientsPage() {
         </div>
       )}
       
-      {selectedProperty && landlord && (
+      {selectedProperty && selectedLandlord && (
         <ManageLandlordDialog 
             isOpen={isDialogOpen}
             onClose={handleDialogClose}
-            landlord={landlord}
+            landlord={selectedLandlord}
             property={selectedProperty}
             onSave={handleSaveLandlord}
         />

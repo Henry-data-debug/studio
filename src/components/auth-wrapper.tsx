@@ -18,17 +18,25 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
     const onLoginPage = pathname === '/login';
     const isTenantRoute = pathname.startsWith('/tenant/');
+    const isLandlordRoute = pathname.startsWith('/landlord/');
     const isTenant = userProfile?.role === 'tenant';
+    const isLandlord = userProfile?.role === 'landlord';
 
     if (isAuth) {
       if (onLoginPage) {
         // If authenticated and on login page, redirect to the correct dashboard
-        window.location.href = isTenant ? '/tenant/dashboard' : '/dashboard';
-      } else if (isTenant && !isTenantRoute && !onLoginPage) {
-        // If tenant is on an admin route, redirect to tenant dashboard
+        let redirectTo = '/dashboard';
+        if (isTenant) redirectTo = '/tenant/dashboard';
+        if (isLandlord) redirectTo = '/landlord/dashboard';
+        window.location.href = redirectTo;
+      } else if (isTenant && !isTenantRoute) {
+        // If tenant is on a non-tenant route, redirect
         router.push('/tenant/dashboard');
-      } else if (!isTenant && isTenantRoute) {
-        // If admin/other is on a tenant route, redirect to admin dashboard
+      } else if (isLandlord && !isLandlordRoute) {
+        // If landlord is on a non-landlord route, redirect
+        router.push('/landlord/dashboard');
+      } else if (!isTenant && !isLandlord && (isTenantRoute || isLandlordRoute)) {
+        // If admin/other is on a tenant or landlord route, redirect to admin dashboard
         router.push('/dashboard');
       }
     } else {

@@ -26,12 +26,16 @@ interface Props {
 
 export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSave }: Props) {
   const [name, setName] = useState(landlord.name);
+  const [email, setEmail] = useState(landlord.email);
+  const [phone, setPhone] = useState(landlord.phone);
   const [bankAccount, setBankAccount] = useState(landlord.bankAccount);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setName(landlord.name);
-    setBankAccount(landlord.bankAccount);
+    setName(landlord.name || '');
+    setEmail(landlord.email || '');
+    setPhone(landlord.phone || '');
+    setBankAccount(landlord.bankAccount || '');
   }, [landlord]);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,6 +44,8 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
     onSave({
         ...landlord,
         name,
+        email,
+        phone,
         bankAccount,
     });
     setIsLoading(false);
@@ -56,23 +62,33 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
         <DialogHeader>
           <DialogTitle>Manage Landlord for {property.name}</DialogTitle>
           <DialogDescription>
-            View and edit the landlord's details and earnings for this property.
+            View and edit the landlord's details and create their login credentials.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="landlord-name">Landlord Name</Label>
-              <Input id="landlord-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input id="landlord-name" value={name} onChange={(e) => setName(e.target.value)} required/>
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="landlord-email">Landlord Email</Label>
+                  <Input id="landlord-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="landlord-phone">Landlord Phone</Label>
+                  <Input id="landlord-phone" value={phone} onChange={(e) => setPhone(e.target.value)} required/>
+                </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="bank-account">Bank Account Details</Label>
               <Input id="bank-account" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} />
             </div>
              <div className="grid gap-2">
-                <Label>Landlord Units</Label>
+                <Label>Landlord Units in this Property</Label>
                 <p className="text-sm text-muted-foreground">
-                    {landlordUnits.map(u => u.name).join(', ')}
+                    {landlordUnits.length > 0 ? landlordUnits.map(u => u.name).join(', ') : 'None'}
                 </p>
             </div>
             <div className="grid gap-2">

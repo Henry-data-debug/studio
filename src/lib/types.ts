@@ -1,6 +1,5 @@
 
 
-
 export type Property = {
   id: string;
   name: string;
@@ -25,6 +24,7 @@ export type Unit = {
   status: UnitStatus;
   ownership: OwnershipType;
   unitType: UnitType;
+  landlordId?: string;
 };
 
 export type Agent = 'Susan' | 'Beatrice' | 'Nelly' | 'Dennis' | 'Peris' | 'Felista' | 'Martha' | 'Thomas' | 'Kiragu';
@@ -90,7 +90,7 @@ export type MaintenanceRequest = {
   createdAt: Date;
 };
 
-export type UserRole = 'admin' | 'viewer' | 'agent' | 'tenant' | 'water-meter-reader';
+export type UserRole = 'admin' | 'viewer' | 'agent' | 'tenant' | 'water-meter-reader' | 'landlord';
 
 export type UserProfile = {
     id: string;
@@ -99,6 +99,7 @@ export type UserProfile = {
     name?: string;
     tenantId?: string;
     propertyId?: string;
+    landlordId?: string;
     tenantDetails?: Tenant;
 }
 
@@ -112,6 +113,9 @@ export type Log = {
 export type Landlord = {
   id: string;
   name: string;
+  email: string;
+  phone: string;
   bankAccount: string;
   earnings: number;
+  userId?: string;
 };

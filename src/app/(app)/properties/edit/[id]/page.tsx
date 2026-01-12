@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import { useForm, useFieldArray, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { getProperty, updateProperty } from '@/lib/data';
+import { getProperty, updateProperty, getLandlords } from '@/lib/data';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Property, ownershipTypes, Unit, unitTypes, unitStatuses } from '@/lib/types';
+import { Property, ownershipTypes, Unit, unitTypes, unitStatuses, Landlord } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 
@@ -20,6 +20,7 @@ const unitSchema = z.object({
   status: z.enum(unitStatuses),
   ownership: z.enum(ownershipTypes),
   unitType: z.enum(unitTypes),
+  landlordId: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -35,6 +36,7 @@ export default function EditPropertyPage() {
   const { id } = useParams();
   const router = useRouter();
   const [property, setProperty] = useState<Property | null>(null);
+  const [landlords, setLandlords] = useState<Landlord[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -45,31 +47,41 @@ export default function EditPropertyPage() {
       units: [],
     },
   });
-
-  const { fields, update } = useFieldArray({
+  
+  const { fields } = useFieldArray({
     control: form.control,
     name: 'units',
   });
+  
+  const watchUnits = form.watch('units');
 
   useEffect(() => {
-    if (id) {
-      getProperty(id as string).then((propertyData) => {
-        if (propertyData) {
-          setProperty(propertyData);
-          form.reset({
-            name: propertyData.name,
-            address: propertyData.address,
-            type: propertyData.type,
-            units: propertyData.units.map(u => ({
-              ...u,
-              ownership: u.ownership || 'SM', 
-              unitType: u.unitType || 'Studio',
-              status: u.status || 'vacant'
-            })) || [],
-          });
+    async function fetchData() {
+        if (id) {
+            const [propertyData, landlordData] = await Promise.all([
+                getProperty(id as string),
+                getLandlords()
+            ]);
+
+            if (propertyData) {
+                setProperty(propertyData);
+                form.reset({
+                    name: propertyData.name,
+                    address: propertyData.address,
+                    type: propertyData.type,
+                    units: propertyData.units.map(u => ({
+                        ...u,
+                        ownership: u.ownership || 'SM', 
+                        unitType: u.unitType || 'Studio',
+                        status: u.status || 'vacant',
+                        landlordId: u.landlordId || '',
+                    })) || [],
+                });
+            }
+            setLandlords(landlordData);
         }
-      });
     }
+    fetchData();
   }, [id, form]);
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
@@ -139,7 +151,7 @@ export default function EditPropertyPage() {
                 <h3 className="text-lg font-medium mb-4">Units</h3>
                 <div className="space-y-4">
                 {fields.map((field, index) => (
-                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1fr] gap-4 items-end p-4 border rounded-lg">
+                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1fr_1fr] gap-4 items-end p-4 border rounded-lg">
                         <FormField
                             control={form.control}
                             name={`units.${index}.name`}
@@ -225,6 +237,33 @@ export default function EditPropertyPage() {
                                 </FormItem>
                             )}
                         />
+                        {watchUnits[index]?.ownership === 'Landlord' && (
+                             <FormField
+                                control={form.control}
+                                name={`units.${index}.landlordId`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Landlord</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Assign Landlord" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="">None</SelectItem>
+                                        {landlords.map((landlord) => (
+                                            <SelectItem key={landlord.id} value={landlord.id}>
+                                            {landlord.name}
+                                            </SelectItem>
+                                        ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                     </div>
                 ))}
                 </div>
