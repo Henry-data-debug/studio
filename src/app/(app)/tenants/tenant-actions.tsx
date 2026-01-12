@@ -21,7 +21,7 @@ export function TenantActions({ tenant }: { tenant: Tenant }) {
       variant="outline"
       size="sm"
       onClick={() => handleSendReminder(tenant.name)}
-      disabled={tenant.lease.paymentStatus === 'Paid'}
+      disabled={!tenant.lease || tenant.lease.paymentStatus === 'Paid'}
     >
       <Bell className="mr-2 h-4 w-4" />
       Send Reminder
