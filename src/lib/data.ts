@@ -152,6 +152,15 @@ export async function addProperty(property: Omit<Property, 'id' | 'imageId'>): P
 
 export async function updateProperty(propertyId: string, data: Partial<Property>): Promise<void> {
     console.log("Updating properties is not fully supported when using local JSON data.");
+    const propertyToUpdate = propertiesData.properties.find(p => p.id === propertyId);
+    if (propertyToUpdate && data.units) {
+        data.units.forEach(updatedUnit => {
+            if (updatedUnit.landlordId === 'none') {
+                delete updatedUnit.landlordId;
+            }
+        });
+    }
+     await logActivity(`Updated property: ${data.name || propertyToUpdate?.name}`);
 }
 
 export async function archiveTenant(tenantId: string): Promise<void> {

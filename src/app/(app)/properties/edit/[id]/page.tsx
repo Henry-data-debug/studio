@@ -244,14 +244,14 @@ export default function EditPropertyPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Landlord</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
                                         <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Assign Landlord" />
                                         </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
                                         {landlords.map((landlord) => (
                                             <SelectItem key={landlord.id} value={landlord.id}>
                                             {landlord.name}
