@@ -13,15 +13,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Landlord, Property } from '@/lib/types';
+import type { Landlord, Property, Unit } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { Checkbox } from './ui/checkbox';
+import { ScrollArea } from './ui/scroll-area';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   landlord: Landlord;
   property: Property;
-  onSave: (landlord: Landlord) => void;
+  onSave: (landlord: Landlord, selectedUnitNames: string[]) => void;
 }
 
 export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSave }: Props) {
@@ -30,14 +32,32 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
   const [phone, setPhone] = useState(landlord.phone);
   const [bankAccount, setBankAccount] = useState(landlord.bankAccount);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
+  
+  const landlordUnits = property.units.filter(u => u.ownership === 'Landlord');
 
   useEffect(() => {
     setName(landlord.name || '');
     setEmail(landlord.email || '');
     setPhone(landlord.phone || '');
     setBankAccount(landlord.bankAccount || '');
-  }, [landlord]);
+    
+    // Pre-select units already assigned to this landlord
+    const currentlyAssignedUnits = property.units
+        .filter(u => u.landlordId === landlord.id)
+        .map(u => u.name);
+    setSelectedUnits(currentlyAssignedUnits);
+
+  }, [landlord, property]);
   
+  const handleUnitToggle = (unitName: string) => {
+    setSelectedUnits(prev => 
+        prev.includes(unitName) 
+            ? prev.filter(name => name !== unitName)
+            : [...prev, unitName]
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -47,14 +67,12 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
         email,
         phone,
         bankAccount,
-    });
+    }, selectedUnits);
     setIsLoading(false);
   }
 
   // Placeholder for earnings calculation
-  const landlordUnits = property.units.filter(u => u.ownership === 'Landlord');
   const earnings = `Calculation pending...`;
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -62,7 +80,7 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
         <DialogHeader>
           <DialogTitle>Manage Landlord for {property.name}</DialogTitle>
           <DialogDescription>
-            View and edit the landlord's details and create their login credentials.
+            Edit landlord details, create login credentials, and assign their units.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -86,10 +104,28 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
               <Input id="bank-account" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} />
             </div>
              <div className="grid gap-2">
-                <Label>Landlord Units in this Property</Label>
-                <p className="text-sm text-muted-foreground">
-                    {landlordUnits.length > 0 ? landlordUnits.map(u => u.name).join(', ') : 'None'}
-                </p>
+                <Label>Assign Landlord Units</Label>
+                <ScrollArea className="h-40 rounded-md border p-4">
+                    <div className="space-y-2">
+                        {landlordUnits.map(unit => (
+                            <div key={unit.name} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`unit-${unit.name}`}
+                                    checked={selectedUnits.includes(unit.name)}
+                                    onCheckedChange={() => handleUnitToggle(unit.name)}
+                                    // Disable checkbox if the unit is assigned to a *different* landlord
+                                    disabled={unit.landlordId !== undefined && unit.landlordId !== landlord.id}
+                                />
+                                <label
+                                    htmlFor={`unit-${unit.name}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    {unit.name}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
             </div>
             <div className="grid gap-2">
               <Label>Potential Earnings (from occupied units)</Label>

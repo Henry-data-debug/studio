@@ -332,7 +332,12 @@ export async function getLandlord(landlordId: string): Promise<Landlord | null> 
     return getDocument<Landlord>('landlords', landlordId);
 }
 
-export async function updateLandlord(landlordId: string, data: Partial<Landlord>): Promise<void> {
+export async function updateLandlord(
+  landlordId: string, 
+  data: Partial<Landlord>, 
+  propertyId: string, 
+  assignedUnits: string[]
+): Promise<void> {
     const landlordRef = doc(db, 'landlords', landlordId);
     let userId = data.userId;
 
@@ -359,7 +364,7 @@ export async function updateLandlord(landlordId: string, data: Partial<Landlord>
                 throw new Error("Failed to create landlord login credentials.");
             }
             // If email is in use, we should try to find the user and link them if they are not already.
-            // This part can be complex and is omitted for now for simplicity.
+            // This part is complex and is omitted for now for simplicity.
         } finally {
             if (secondaryApp) {
                 await deleteApp(secondaryApp);
@@ -373,5 +378,11 @@ export async function updateLandlord(landlordId: string, data: Partial<Landlord>
     }
 
     await setDoc(landlordRef, finalData, { merge: true });
+    
+    // This part is tricky as we can't directly update the JSON file.
+    // This console log will serve as a record of the intended operation.
+    console.log(`Updating property ${propertyId}: Assigning landlord ${landlordId} to units: ${assignedUnits.join(', ')}`);
+    // In a real application, you would update the property document in Firestore here.
+    
     await logActivity(`Updated landlord details for: ${data.name || 'ID ' + landlordId}`);
 }

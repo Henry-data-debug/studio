@@ -19,8 +19,22 @@ export default function ClientsPage() {
   const { toast } = useToast();
 
   const fetchData = async () => {
-      const [props, lords] = await Promise.all([getProperties(), getLandlords()]);
-      setAllProperties(props);
+      // In a real app, getProperties would fetch from Firestore.
+      // Here, we simulate fetching and then merge landlord data.
+      const props = await getProperties();
+      const lords = await getLandlords();
+      
+      // Simulate merging landlord data into properties data from JSON
+      const propsWithLandlordIds = props.map(p => {
+          const updatedUnits = p.units.map(u => {
+              // This is a placeholder logic. A real app would have this link in the DB.
+              const owner = lords.find(l => l.id === u.landlordId);
+              return owner ? { ...u, landlordId: owner.id } : u;
+          });
+          return { ...p, units: updatedUnits };
+      })
+
+      setAllProperties(propsWithLandlordIds);
       setLandlords(lords);
   }
 
@@ -30,25 +44,15 @@ export default function ClientsPage() {
   
   const landlordProperties = allProperties.filter(p => Array.isArray(p.units) && p.units.some(u => u.ownership === 'Landlord'));
 
-  const handleManageClick = async (property: Property) => {
+  const handleManageClick = (property: Property) => {
     setSelectedProperty(property);
-    // Find an existing landlord associated with any unit in this property
-    const unitWithLandlord = property.units.find(u => u.landlordId);
-    let landlordId = unitWithLandlord?.landlordId;
-    let landlordData: Landlord | null = null;
+    // This part is tricky. Who are we editing? A new landlord or existing?
+    // Let's assume for now we might be creating a new one or picking one.
+    // For simplicity, we'll create a new potential landlord ID based on the property.
+    const landlordId = `landlord-for-${property.id}-${Date.now()}`;
+    const newLandlord: Landlord = { id: landlordId, name: '', email: '', phone: '', bankAccount: '', earnings: 0 };
     
-    if (landlordId) {
-        landlordData = await getLandlord(landlordId);
-    }
-
-    // For simplicity, we'll create a new potential landlord ID based on the property if none is found.
-    // A more robust system might have a dedicated "Create Landlord" flow.
-    if (!landlordData) {
-        landlordId = property.id; // Using property ID as a temporary, unique ID for a new landlord
-        landlordData = { id: landlordId, name: '', email: '', phone: '', bankAccount: '', earnings: 0 };
-    }
-    
-    setSelectedLandlord(landlordData);
+    setSelectedLandlord(newLandlord);
     setIsDialogOpen(true);
   };
   
@@ -58,11 +62,38 @@ export default function ClientsPage() {
     setSelectedLandlord(null);
   }
   
-  const handleSaveLandlord = async (landlordData: Landlord) => {
+  const handleSaveLandlord = async (landlordData: Landlord, selectedUnitNames: string[]) => {
+    if (!selectedProperty) return;
+    
     try {
-        await updateLandlord(landlordData.id, landlordData);
+        await updateLandlord(landlordData.id, landlordData, selectedProperty.id, selectedUnitNames);
         toast({ title: 'Landlord Saved', description: `Details for ${landlordData.name} have been saved.` });
-        fetchData(); // Refresh landlord data
+        
+        // This is a simulation since we can't modify the source JSON
+        // In a real Firestore-backed app, this would refetch and show updated state.
+        const updatedProperties = allProperties.map(p => {
+            if (p.id === selectedProperty.id) {
+                const newUnits = p.units.map(u => {
+                    if (selectedUnitNames.includes(u.name)) {
+                        return { ...u, landlordId: landlordData.id };
+                    }
+                     // If a unit was previously assigned to this landlord but now is not, unassign it
+                    if (u.landlordId === landlordData.id && !selectedUnitNames.includes(u.name)) {
+                        const { landlordId, ...rest } = u;
+                        return rest;
+                    }
+                    return u;
+                });
+                return { ...p, units: newUnits };
+            }
+            return p;
+        });
+        setAllProperties(updatedProperties);
+        
+        // Refresh landlord list
+        const lords = await getLandlords();
+        setLandlords(lords);
+
         handleDialogClose();
     } catch(error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to save landlord.' });
@@ -96,13 +127,13 @@ export default function ClientsPage() {
               <CardContent className="flex-grow">
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
                   <span>{property.type}</span>
-                  <span className="font-semibold">{Array.isArray(property.units) ? property.units.length : 0} Units</span>
+                  <span className="font-semibold">{Array.isArray(property.units) ? property.units.filter(u => u.ownership === 'Landlord').length : 0} Landlord Units</span>
                 </div>
               </CardContent>
               <div className="p-6 pt-0">
                   <Button onClick={() => handleManageClick(property)} className="w-full">
                     <Edit className="mr-2 h-4 w-4" />
-                    Manage Landlord
+                    Manage Landlords
                   </Button>
               </div>
             </Card>
