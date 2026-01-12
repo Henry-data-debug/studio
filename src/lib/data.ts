@@ -5,6 +5,7 @@ import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile, WaterMeterReading, Payment, UnitType, OwnershipType } from '@/lib/types';
 import { db, firebaseConfig } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc, serverTimestamp, arrayUnion, writeBatch } from 'firebase/firestore';
+import propertiesData from '../../backend.json';
 
 const WATER_RATE = 150; // Ksh per unit
 
@@ -27,31 +28,25 @@ async function getDocument<T>(collectionName: string, id: string): Promise<T | n
 
 
 export async function getProperties(): Promise<Property[]> {
-  return getCollection<Property>('properties');
+  // Directly return the properties from the imported JSON file
+  return Promise.resolve(propertiesData.properties as Property[]);
 }
 
 export async function getTenants(): Promise<Tenant[]> {
-    const q = query(collection(db, "tenants"), where("status", "!=", "archived"));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tenant));
+    return Promise.resolve([]);
 }
 
 export async function getArchivedTenants(): Promise<ArchivedTenant[]> {
-    const q = query(collection(db, "tenants"), where("status", "==", "archived"));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ArchivedTenant));
+    return Promise.resolve([]);
 }
 
 export async function getMaintenanceRequests(): Promise<MaintenanceRequest[]> {
-    const q = query(collection(db, "maintenanceRequests"));
-    const querySnapshot = await getDocs(q);
-    const requests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
-    requests.sort((a, b) => (b.createdAt as any) - (a.createdAt as any));
-    return requests;
+    return Promise.resolve([]);
 }
 
 export async function getProperty(id: string): Promise<Property | null> {
-    return getDocument<Property>('properties', id);
+    const property = propertiesData.properties.find(p => p.id === id);
+    return Promise.resolve(property || null);
 }
 
 export async function getTenant(id: string): Promise<Tenant | null> {
@@ -101,15 +96,10 @@ export async function addTenant({
     };
     const tenantDocRef = await addDoc(collection(db, 'tenants'), newTenantData);
     
-    // Mark unit as rented
-    const property = await getProperty(propertyId);
-    if (property && property.units) {
-        const updatedUnits = property.units.map(unit => 
-            unit.name === unitName ? { ...unit, status: 'rented' as const } : unit
-        );
-        const propertyRef = doc(db, 'properties', propertyId);
-        await updateDoc(propertyRef, { units: updatedUnits });
-    }
+    // This part will need to be re-evaluated as properties are no longer in Firestore
+    // For now, it will not update the JSON file, only client state if handled there.
+    console.log(`Unit ${unitName} in property ${propertyId} should be marked as rented.`);
+
 
     // Create Firebase Auth user for the tenant
     const appName = 'tenant-creation-app-' + newTenantData.email;
@@ -145,13 +135,13 @@ export async function addTenant({
 }
 
 export async function addProperty(property: Omit<Property, 'id' | 'imageId'>): Promise<void> {
-    const imageId = Math.floor(Math.random() * 3 + 1).toString();
-    await addDoc(collection(db, 'properties'), { ...property, imageId: `property-${imageId}` });
+    // This would need to write back to the backend.json file, which is not possible from here.
+    console.log("Adding properties is not fully supported when using local JSON data.");
 }
 
 export async function updateProperty(propertyId: string, data: Partial<Property>): Promise<void> {
-    const propertyRef = doc(db, 'properties', propertyId);
-    await updateDoc(propertyRef, data);
+    // This would need to write back to the backend.json file, which is not possible from here.
+    console.log("Updating properties is not fully supported when using local JSON data.");
 }
 
 export async function archiveTenant(tenantId: string): Promise<void> {
@@ -163,14 +153,7 @@ export async function archiveTenant(tenantId: string): Promise<void> {
             archivedAt: new Date().toISOString()
         });
 
-        const property = await getProperty(tenant.propertyId);
-        if (property && property.units) {
-            const updatedUnits = property.units.map(unit =>
-                unit.name === tenant.unitName ? { ...unit, status: 'vacant' } : unit
-            );
-            const propertyRef = doc(db, 'properties', tenant.propertyId);
-            await updateDoc(propertyRef, { units: updatedUnits });
-        }
+        console.log(`Unit ${tenant.unitName} in property ${tenant.propertyId} should be marked as vacant.`);
     }
 }
 
@@ -180,24 +163,9 @@ export async function updateTenant(tenantId: string, tenantData: Partial<Tenant>
     await updateDoc(tenantRef, tenantData);
 
     if (oldTenant && (oldTenant.propertyId !== tenantData.propertyId || oldTenant.unitName !== tenantData.unitName)) {
-        const oldProperty = await getProperty(oldTenant.propertyId);
-        if (oldProperty && oldProperty.units) {
-            const updatedOldUnits = oldProperty.units.map(unit =>
-                unit.name === oldTenant.unitName ? { ...unit, status: 'vacant' } : unit
-            );
-            const oldPropertyRef = doc(db, 'properties', oldTenant.propertyId);
-            await updateDoc(oldPropertyRef, { units: updatedOldUnits });
-        }
-
+        console.log(`Unit ${oldTenant.unitName} in property ${oldTenant.propertyId} should be marked as vacant.`);
         if (tenantData.propertyId && tenantData.unitName) {
-            const newProperty = await getProperty(tenantData.propertyId);
-            if (newProperty && newProperty.units) {
-                const updatedNewUnits = newProperty.units.map(unit =>
-                    unit.name === tenantData.unitName ? { ...unit, status: 'rented' } : unit
-                );
-                const newPropertyRef = doc(db, 'properties', tenantData.propertyId);
-                await updateDoc(newPropertyRef, { units: updatedNewUnits });
-            }
+            console.log(`Unit ${tenantData.unitName} in property ${tenantData.propertyId} should be marked as rented.`);
         }
     }
 }
@@ -335,34 +303,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
 
 
 export async function updateUnitTypesFromCSV(data: { PropertyName: string; UnitName: string; UnitType: string }[]): Promise<number> {
-    const properties = await getProperties();
-    const propertyMap = new Map(properties.map(p => [p.name, p]));
-    const batch = writeBatch(db);
-    let updatedCount = 0;
-
-    data.forEach(row => {
-        const property = propertyMap.get(row.PropertyName);
-        if (property) {
-            let unitUpdated = false;
-            const newUnits = property.units.map(unit => {
-                if (unit.name === row.UnitName && unit.unitType !== row.UnitType) {
-                    unitUpdated = true;
-                    return { ...unit, unitType: row.UnitType as UnitType };
-                }
-                return unit;
-            });
-
-            if (unitUpdated) {
-                const propertyRef = doc(db, 'properties', property.id);
-                batch.update(propertyRef, { units: newUnits });
-                updatedCount++;
-            }
-        }
-    });
-
-    if (updatedCount > 0) {
-        await batch.commit();
-    }
-
-    return updatedCount;
+    // This function will need to be updated to write back to backend.json, which is not possible from client-side code.
+    console.log("Updating from CSV is not fully supported when using local JSON data.");
+    return 0;
 }
