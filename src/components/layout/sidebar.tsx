@@ -47,6 +47,7 @@ const navItems = [
 const otherItems = [
     { href: '/documents', icon: FolderArchive, label: 'Documents' },
     { href: '/clients', icon: Briefcase, label: 'Client Properties' },
+    { href: '/landlords', icon: Users, label: 'Landlords' },
     { href: '/airbnb', icon: BedDouble, label: 'Airbnb Monitoring' },
 ]
 

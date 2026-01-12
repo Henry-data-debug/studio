@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -13,6 +14,7 @@ const titleMap: { [key: string]: string } = {
   '/properties': 'Properties',
   '/documents': 'Documents',
   '/clients': 'Client Properties',
+  '/landlords': 'Landlords',
   '/airbnb': 'Airbnb Monitoring',
 };
 
