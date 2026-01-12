@@ -122,7 +122,7 @@ export async function addTenant({
 
     const secondaryAuth = getAuth(secondaryApp);
     try {
-        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, unitName);
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, phone);
         const user = userCredential.user;
 
         // Create user profile in Firestore
