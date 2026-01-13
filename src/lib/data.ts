@@ -151,16 +151,36 @@ export async function addProperty(property: Omit<Property, 'id' | 'imageId'>): P
 }
 
 export async function updateProperty(propertyId: string, data: Partial<Property>): Promise<void> {
-    console.log("Updating properties is not fully supported when using local JSON data.");
-    const propertyToUpdate = propertiesData.properties.find(p => p.id === propertyId);
-    if (propertyToUpdate && data.units) {
-        data.units.forEach(updatedUnit => {
-            if (updatedUnit.landlordId === 'none') {
-                delete updatedUnit.landlordId;
-            }
-        });
+    const propertyIndex = propertiesData.properties.findIndex(p => p.id === propertyId);
+
+    if (propertyIndex !== -1) {
+        const propertyToUpdate = propertiesData.properties[propertyIndex];
+
+        // Update top-level fields
+        if (data.name) propertyToUpdate.name = data.name;
+        if (data.address) propertyToUpdate.address = data.address;
+        if (data.type) propertyToUpdate.type = data.type;
+        
+        // Update units
+        if (data.units) {
+            propertyToUpdate.units = data.units.map(updatedUnit => {
+                const existingUnit = propertyToUpdate.units.find(u => u.name === updatedUnit.name);
+                const finalUnit = { ...existingUnit, ...updatedUnit };
+                
+                if (finalUnit.landlordId === 'none') {
+                    delete finalUnit.landlordId;
+                }
+                
+                return finalUnit;
+            }) as Unit[];
+        }
+        
+        propertiesData.properties[propertyIndex] = propertyToUpdate;
+
+        await logActivity(`Updated property: ${data.name || propertyToUpdate.name}`);
+    } else {
+        console.error("Could not find property to update with ID:", propertyId);
     }
-     await logActivity(`Updated property: ${data.name || propertyToUpdate?.name}`);
 }
 
 export async function archiveTenant(tenantId: string): Promise<void> {
