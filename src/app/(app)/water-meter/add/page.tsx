@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,47 +9,42 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getProperties, addWaterMeterReading, getTenants } from '@/lib/data';
-import type { Property, Tenant } from '@/lib/types';
+import type { Property } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { useUnitFilter } from '@/hooks/useUnitFilter';
 
 export default function AddWaterMeterReadingPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedTenantId, setSelectedTenantId] = useState<string>('');
   const [priorReading, setPriorReading] = useState('');
   const [currentReading, setCurrentReading] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    selectedProperty,
+    setSelectedProperty,
+    selectedFloor,
+    setSelectedFloor,
+    selectedUnit,
+    setSelectedUnit,
+    floors,
+    unitsOnFloor,
+  } = useUnitFilter(properties);
 
   useEffect(() => {
     async function fetchData() {
-      const [tenantData, props] = await Promise.all([getTenants(), getProperties()]);
-      setTenants(tenantData);
+      const props = await getProperties();
       setProperties(props);
     }
     fetchData();
   }, []);
 
-  const filteredTenants = useMemo(() => {
-    if (!searchQuery) return tenants;
-    return tenants.filter(tenant =>
-      tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tenant.unitName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery, tenants]);
-
-  const getPropertyName = (propertyId: string) => {
-    return properties.find(p => p.id === propertyId)?.name || 'Unknown';
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedTenant = tenants.find(t => t.id === selectedTenantId);
 
-    if (!selectedTenant || priorReading === '' || currentReading === '') {
+    if (!selectedProperty || !selectedUnit || priorReading === '' || currentReading === '') {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -62,14 +57,14 @@ export default function AddWaterMeterReadingPage() {
 
     try {
       await addWaterMeterReading({
-        propertyId: selectedTenant.propertyId,
-        unitName: selectedTenant.unitName,
+        propertyId: selectedProperty,
+        unitName: selectedUnit,
         priorReading: Number(priorReading),
         currentReading: Number(currentReading),
       });
       toast({
         title: "Reading Added",
-        description: `Water meter reading for ${selectedTenant.name} in unit ${selectedTenant.unitName} has been saved.`,
+        description: `Water meter reading for unit ${selectedUnit} has been saved.`,
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -94,33 +89,46 @@ export default function AddWaterMeterReadingPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-                <Label htmlFor="search">Search Tenant / Unit</Label>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        id="search"
-                        placeholder="Search by name or unit..."
-                        className="pl-10"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tenant">Tenant & Unit</Label>
-              <Select onValueChange={setSelectedTenantId} value={selectedTenantId}>
-                <SelectTrigger id="tenant">
-                  <SelectValue placeholder="Select a tenant" />
+              <Label htmlFor="development">Development</Label>
+              <Select onValueChange={setSelectedProperty} value={selectedProperty}>
+                <SelectTrigger id="development">
+                  <SelectValue placeholder="Select a development" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredTenants.map(tenant => (
-                    <SelectItem key={tenant.id} value={tenant.id}>
-                      {tenant.name} - {tenant.unitName} ({getPropertyName(tenant.propertyId)})
-                    </SelectItem>
+                  {properties.map(prop => (
+                    <SelectItem key={prop.id} value={prop.id}>{prop.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="floor">Floor</Label>
+                <Select onValueChange={setSelectedFloor} value={selectedFloor} disabled={!selectedProperty}>
+                  <SelectTrigger id="floor">
+                    <SelectValue placeholder="Select floor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {floors.map(floor => (
+                      <SelectItem key={floor} value={floor}>{floor}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unit">Unit</Label>
+                <Select onValueChange={setSelectedUnit} value={selectedUnit} disabled={!selectedFloor}>
+                  <SelectTrigger id="unit">
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unitsOnFloor.map(unit => (
+                      <SelectItem key={unit.name} value={unit.name}>{unit.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">

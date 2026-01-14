@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Percent, Users, UserX, PlusCircle, Search, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { DollarSign, Percent, Users, UserX, PlusCircle, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -25,41 +25,40 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useUnitFilter } from '@/hooks/useUnitFilter';
 
 function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties: Property[], tenants: Tenant[], onPaymentAdded: () => void }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedPropertyId, setSelectedPropertyId] = useState('');
-    const [selectedTenantId, setSelectedTenantId] = useState('');
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [notes, setNotes] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
 
-    const tenantsInProperty = useMemo(() => {
-        if (!selectedPropertyId) return [];
-        return tenants.filter(tenant => tenant.propertyId === selectedPropertyId);
-    }, [selectedPropertyId, tenants]);
-
-    const filteredTenants = useMemo(() => {
-        if (!searchQuery) return tenantsInProperty;
-        return tenantsInProperty.filter(tenant => 
-            tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tenant.unitName.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [searchQuery, tenantsInProperty]);
+    const {
+        selectedProperty,
+        setSelectedProperty,
+        selectedFloor,
+        setSelectedFloor,
+        selectedUnit,
+        setSelectedUnit,
+        floors,
+        unitsOnFloor,
+    } = useUnitFilter(properties);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedTenantId || !amount || !date) {
+        
+        const tenant = tenants.find(t => t.propertyId === selectedProperty && t.unitName === selectedUnit);
+
+        if (!tenant || !amount || !date) {
             toast({ variant: 'destructive', title: 'Missing Fields', description: 'Please select a unit, amount, and date.' });
             return;
         }
         setIsLoading(true);
         try {
             await addPayment({
-                tenantId: selectedTenantId,
+                tenantId: tenant.id,
                 amount: Number(amount),
                 date: format(date, 'yyyy-MM-dd'),
                 notes,
@@ -68,12 +67,12 @@ function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties:
             onPaymentAdded();
             setOpen(false);
             // Reset form
-            setSelectedPropertyId('');
-            setSelectedTenantId('');
+            setSelectedProperty('');
+            setSelectedFloor('');
+            setSelectedUnit('');
             setAmount('');
             setDate(new Date());
             setNotes('');
-            setSearchQuery('');
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to add payment.' });
         } finally {
@@ -97,7 +96,7 @@ function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties:
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
                              <Label htmlFor="development">Development</Label>
-                             <Select onValueChange={setSelectedPropertyId} value={selectedPropertyId}>
+                             <Select onValueChange={setSelectedProperty} value={selectedProperty}>
                                 <SelectTrigger id="development">
                                     <SelectValue placeholder="Select a development" />
                                 </SelectTrigger>
@@ -108,34 +107,35 @@ function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties:
                                 </SelectContent>
                             </Select>
                         </div>
-
-                         <div className="space-y-2">
-                             <Label htmlFor="search">Search Unit</Label>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input 
-                                    id="search"
-                                    placeholder="Search by unit or tenant name..."
-                                    className="pl-10"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    disabled={!selectedPropertyId}
-                                />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="floor">Floor</Label>
+                                <Select onValueChange={setSelectedFloor} value={selectedFloor} disabled={!selectedProperty}>
+                                    <SelectTrigger id="floor">
+                                        <SelectValue placeholder="Select floor" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {floors.map(floor => (
+                                            <SelectItem key={floor} value={floor}>{floor}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="unit">Unit</Label>
+                                <Select onValueChange={setSelectedUnit} value={selectedUnit} disabled={!selectedFloor}>
+                                    <SelectTrigger id="unit">
+                                        <SelectValue placeholder="Select unit" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {unitsOnFloor.map(unit => (
+                                            <SelectItem key={unit.name} value={unit.name}>{unit.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="unit">Unit</Label>
-                            <Select onValueChange={setSelectedTenantId} value={selectedTenantId} disabled={!selectedPropertyId}>
-                                <SelectTrigger id="unit">
-                                    <SelectValue placeholder="Select a unit" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {filteredTenants.map(tenant => (
-                                        <SelectItem key={tenant.id} value={tenant.id}>{tenant.unitName} - {tenant.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="amount">Amount (Ksh)</Label>
                             <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required />
