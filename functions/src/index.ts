@@ -1,3 +1,4 @@
+
 /**
  * Import function triggers from their respective submodules:
  *
@@ -8,7 +9,7 @@
  */
 
 import {setGlobalOptions} from "firebase-functions";
-import {onCall} from "firebase-functions/v2/https";
+import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as nodemailer from "nodemailer";
 import {defineString} from "firebase-functions/params";
@@ -49,20 +50,20 @@ export const sendPaymentReceipt = onCall(async (request) => {
         to: tenantEmail,
         subject: "Your Payment Receipt",
         html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px;">
-                <h2 style="color: #333;">Payment Received</h2>
+            <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+                <h2 style="color: #333; text-align: center; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Payment Received</h2>
                 <p>Dear ${tenantName},</p>
                 <p>We have successfully received your payment. Thank you!</p>
-                <h3>Receipt Details:</h3>
+                <h3 style="color: #333; border-top: 1px solid #ddd; padding-top: 15px; margin-top: 20px;">Receipt Details:</h3>
                 <table style="width: 100%; border-collapse: collapse;">
-                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Amount Paid:</td><td style="padding: 8px; border: 1px solid #ddd;">Ksh ${amount.toLocaleString()}</td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Payment Date:</td><td style="padding: 8px; border: 1px solid #ddd;">${date}</td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Property:</td><td style="padding: 8px; border: 1px solid #ddd;">${propertyName}</td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid #ddd;">Unit:</td><td style="padding: 8px; border: 1px solid #ddd;">${unitName}</td></tr>
-                    ${notes ? `<tr><td style="padding: 8px; border: 1px solid #ddd;">Notes:</td><td style="padding: 8px; border: 1px solid #ddd;">${notes}</td></tr>` : ''}
+                    <tr style="background-color: #f9f9f9;"><td style="padding: 10px; border: 1px solid #ddd;">Amount Paid:</td><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Ksh ${amount.toLocaleString()}</td></tr>
+                    <tr><td style="padding: 10px; border: 1px solid #ddd;">Payment Date:</td><td style="padding: 10px; border: 1px solid #ddd;">${date}</td></tr>
+                    <tr style="background-color: #f9f9f9;"><td style="padding: 10px; border: 1px solid #ddd;">Property:</td><td style="padding: 10px; border: 1px solid #ddd;">${propertyName}</td></tr>
+                    <tr><td style="padding: 10px; border: 1px solid #ddd;">Unit:</td><td style="padding: 10px; border: 1px solid #ddd;">${unitName}</td></tr>
+                    ${notes ? `<tr style="background-color: #f9f9f9;"><td style="padding: 10px; border: 1px solid #ddd;">Notes:</td><td style="padding: 10px; border: 1px solid #ddd;">${notes}</td></tr>` : ''}
                 </table>
-                <p style="margin-top: 20px;">If you have any questions, feel free to contact us.</p>
-                <p>Sincerely,<br>The Eracov Properties Team</p>
+                <p style="margin-top: 25px; font-size: 0.9em; color: #555;">If you have any questions about this payment, please don't hesitate to contact us.</p>
+                <p style="margin-top: 20px; text-align: center; color: #888; font-size: 0.8em;">Sincerely,<br>The Eracov Properties Team</p>
             </div>
         `,
     };
@@ -73,6 +74,6 @@ export const sendPaymentReceipt = onCall(async (request) => {
         return { success: true, message: "Receipt sent successfully." };
     } catch (error) {
         logger.error("Error sending email:", error);
-        throw new functions.https.HttpsError("internal", "Failed to send email.");
+        throw new HttpsError("internal", "Failed to send email.");
     }
 });
