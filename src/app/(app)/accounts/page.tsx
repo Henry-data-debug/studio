@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { getTenants, getProperties, addPayment } from '@/lib/data';
-import type { Tenant, Property, Payment } from '@/lib/types';
+import type { Tenant, Property, Payment, Unit } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
@@ -46,13 +46,23 @@ function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties:
         unitsOnFloor,
     } = useUnitFilter(properties);
 
+    const occupiedUnitsOnFloor = useMemo(() => {
+        const tenantUnits = tenants.filter(t => t.propertyId === selectedProperty).map(t => t.unitName);
+        return unitsOnFloor.filter(u => tenantUnits.includes(u.name));
+    }, [unitsOnFloor, tenants, selectedProperty]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        if (!selectedProperty || !selectedUnit || !amount || !date) {
+            toast({ variant: 'destructive', title: 'Missing Fields', description: 'Please fill out all required fields.' });
+            return;
+        }
+
         const tenant = tenants.find(t => t.propertyId === selectedProperty && t.unitName === selectedUnit);
 
-        if (!tenant || !amount || !date) {
-            toast({ variant: 'destructive', title: 'Missing Fields', description: 'Please select a unit, amount, and date.' });
+        if (!tenant) {
+            toast({ variant: 'destructive', title: 'Tenant Not Found', description: 'No active tenant found for the selected unit.' });
             return;
         }
         setIsLoading(true);
@@ -128,7 +138,7 @@ function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties:
                                         <SelectValue placeholder="Select unit" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {unitsOnFloor.map(unit => (
+                                        {occupiedUnitsOnFloor.map(unit => (
                                             <SelectItem key={unit.name} value={unit.name}>{unit.name}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -306,3 +316,5 @@ export default function AccountsPage() {
     </div>
   );
 }
+
+    
