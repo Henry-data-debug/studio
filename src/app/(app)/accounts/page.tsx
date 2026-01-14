@@ -47,10 +47,15 @@ function AddPaymentDialog({ properties, tenants, onPaymentAdded }: { properties:
     } = useUnitFilter(properties);
 
     const occupiedUnitsOnFloor = useMemo(() => {
-        if (!unitsOnFloor.length) return [];
-        const tenantsOnProperty = tenants.filter(t => t.propertyId === selectedProperty);
-        const occupiedUnitNames = new Set(tenantsOnProperty.map(t => t.unitName));
-        return unitsOnFloor.filter(u => occupiedUnitNames.has(u.name));
+        if (!selectedProperty || !unitsOnFloor.length) return [];
+        // First, get all tenant unit names for the selected property
+        const occupiedUnitNamesForProperty = new Set(
+            tenants
+                .filter(t => t.propertyId === selectedProperty)
+                .map(t => t.unitName)
+        );
+        // Then, filter the units for the selected floor to only include those that are occupied
+        return unitsOnFloor.filter(u => occupiedUnitNamesForProperty.has(u.name));
     }, [unitsOnFloor, tenants, selectedProperty]);
 
     const handleSubmit = async (e: React.FormEvent) => {
