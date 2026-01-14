@@ -22,19 +22,19 @@ export default function DashboardPage() {
   }, []);
 
   const recentRequests = maintenanceRequests
-    .filter(r => r.status !== 'completed')
+    .filter(r => r.status !== 'Completed')
     .slice(0, 3);
-  
+
   const getTenantName = (tenantId: string) => tenants.find(t => t.id === tenantId)?.name || 'Unknown';
   const getPropertyName = (propertyId: string) => properties.find(p => p.id === propertyId)?.name || 'Unknown';
 
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight mb-2">Welcome, Property Manager</h2>
-        <p className="text-muted-foreground">Here's a summary of your properties today.</p>
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">Welcome, Property Manager</h2>
+        <p className="text-muted-foreground text-sm sm:text-base">Here's a summary of your properties today.</p>
       </div>
-      
+
       <DashboardStats />
 
       <div className="grid gap-8 lg:grid-cols-3">
@@ -54,11 +54,11 @@ export default function DashboardPage() {
             <ul className="space-y-4">
               {recentRequests.map(req => (
                 <li key={req.id} className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="font-medium">{getTenantName(req.tenantId)} - <span className="text-muted-foreground">{getPropertyName(req.propertyId)}</span></span>
-                    <span className="text-sm text-muted-foreground truncate max-w-xs">{req.details}</span>
+                  <div className="flex flex-col min-w-0 flex-1 mr-4">
+                    <span className="font-medium truncate">{getTenantName(req.tenantId)} - <span className="text-muted-foreground">{getPropertyName(req.propertyId)}</span></span>
+                    <span className="text-sm text-muted-foreground truncate">{req.details}</span>
                   </div>
-                  <span className="text-sm font-medium">{new Date(req.date).toLocaleDateString()}</span>
+                  <span className="text-xs sm:text-sm font-medium whitespace-nowrap">{new Date(req.date).toLocaleDateString()}</span>
                 </li>
               ))}
               {recentRequests.length === 0 && (
@@ -73,17 +73,17 @@ export default function DashboardPage() {
             <CardDescription>A summary of your managed properties.</CardDescription>
           </CardHeader>
           <CardContent>
-             <ul className="space-y-4">
+            <ul className="space-y-4">
               {properties.map(prop => (
                 <li key={prop.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-4">
-                     <div className="bg-primary/10 p-2 rounded-full">
-                        <Building2 className="h-5 w-5 text-primary" />
-                     </div>
-                     <div>
-                        <span className="font-medium">{prop.name}</span>
-                        <p className="text-sm text-muted-foreground">{prop.address}</p>
-                     </div>
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <Building2 className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="font-medium">{prop.name}</span>
+                      <p className="text-sm text-muted-foreground">{prop.address}</p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <span className="font-semibold">{Array.isArray(prop.units) ? prop.units.length : 0}</span>
