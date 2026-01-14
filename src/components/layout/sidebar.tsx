@@ -4,6 +4,7 @@
 import {
   Sidebar,
   SidebarHeader,
+  SidebarContent,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -85,48 +86,50 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarMenu>
-        {navItems.map((item) => (
-          <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-              <SidebarMenuButton
-                isActive={isActive(item.href)}
-                tooltip={item.label}
-              >
-                <item.icon />
-                <span>{item.label}</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        ))}
-        <Separator className="my-2" />
-        {otherItems.map((item) => (
-          <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-              <SidebarMenuButton
-                isActive={isActive(item.href)}
-                tooltip={item.label}
-              >
-                <item.icon />
-                <span>{item.label}</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        ))}
-        {userProfile?.role === 'admin' && (
-          <SidebarMenuItem>
-            <Link href="/logs">
-              <SidebarMenuButton
-                isActive={isActive('/logs')}
-                tooltip="Activity Logs"
-              >
-                <History />
-                <span>Activity Logs</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        )}
-      </SidebarMenu>
+      <SidebarContent>
+        <SidebarMenu>
+          {navItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+              <Link href={item.href}>
+                <SidebarMenuButton
+                  isActive={isActive(item.href)}
+                  tooltip={item.label}
+                >
+                  <item.icon />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          ))}
+          <Separator className="my-2" />
+          {otherItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+              <Link href={item.href}>
+                <SidebarMenuButton
+                  isActive={isActive(item.href)}
+                  tooltip={item.label}
+                >
+                  <item.icon />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          ))}
+          {(userProfile?.role === 'admin' || user?.email === 'nigel2421@gmail.com') && (
+            <SidebarMenuItem>
+              <Link href="/logs">
+                <SidebarMenuButton
+                  isActive={isActive('/logs')}
+                  tooltip="Activity Logs"
+                >
+                  <History />
+                  <span>Activity Logs</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          )}
+        </SidebarMenu>
+      </SidebarContent>
 
       <SidebarFooter>
         <Separator className="mb-2" />
