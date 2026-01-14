@@ -2,13 +2,11 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth"; // Make sure to import getAuth
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getAuth } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
+
 
 // Your web app's Firebase configuration
-// For more information on how to get this object, see the link below
-// https://firebase.google.com/docs/web/learn-more#config-object
 export const firebaseConfig = {
   apiKey: "AIzaSyBmM3eJxNrPWHzbjbfY2wWlEMEJHFKcTCA",
   authDomain: "studio-3511865139-8f049.firebaseapp.com",
@@ -25,3 +23,7 @@ const app = initializeApp(firebaseConfig);
 // Export auth and db
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const functions = getFunctions(app);
+
+// Export a callable function reference
+export const sendPaymentReceipt = httpsCallable(functions, 'sendPaymentReceipt');

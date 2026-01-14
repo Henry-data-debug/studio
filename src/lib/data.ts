@@ -3,7 +3,7 @@
 import { initializeApp, getApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile, WaterMeterReading, Payment, UnitType, OwnershipType, Log, Landlord } from '@/lib/types';
-import { db, firebaseConfig } from './firebase';
+import { db, firebaseConfig, sendPaymentReceipt } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc, serverTimestamp, arrayUnion, writeBatch, orderBy, deleteDoc, limit } from 'firebase/firestore';
 import propertiesData from '../../backend.json';
 import { auth } from './firebase';
@@ -61,7 +61,9 @@ export async function getArchivedTenants(): Promise<ArchivedTenant[]> {
 }
 
 export async function getMaintenanceRequests(): Promise<MaintenanceRequest[]> {
-    return getCollection<MaintenanceRequest>('maintenanceRequests');
+    const q = query(collection(db, 'maintenanceRequests'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
 }
 
 export async function getProperty(id: string): Promise<Property | null> {
@@ -76,7 +78,7 @@ export async function getTenant(id: string): Promise<Tenant | null> {
             collection(db, 'waterReadings'), 
             where('tenantId', '==', id),
             orderBy('createdAt', 'desc'),
-            limit(12)
+            limit(1) // We only need the latest one for the dashboard card
         );
         const readingsSnapshot = await getDocs(readingsQuery);
         const readings = readingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaterMeterReading));
@@ -320,6 +322,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
     await addDoc(collection(db, 'payments'), payment);
     await logActivity(`Added payment of ${paymentData.amount} for tenant ${tenant.name}`);
 
+    // Update lease payment status
     let newLeaseData = {};
     if (tenant.lease && payment.amount >= tenant.lease.rent) {
         newLeaseData = {
@@ -327,7 +330,26 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
             'lease.lastPaymentDate': paymentData.date,
         };
     }
-     await updateDoc(tenantRef, newLeaseData);
+    await updateDoc(tenantRef, newLeaseData);
+    
+    // Send receipt email
+    const property = await getProperty(tenant.propertyId);
+    try {
+        await sendPaymentReceipt({
+            tenantEmail: tenant.email,
+            tenantName: tenant.name,
+            amount: paymentData.amount,
+            date: paymentData.date,
+            propertyName: property?.name || 'N/A',
+            unitName: tenant.unitName,
+            notes: paymentData.notes,
+        });
+    } catch (error) {
+        console.error("Failed to send receipt email via cloud function:", error);
+        // We don't throw here because the payment was still successful.
+        // We should log this to a more robust monitoring service in a real app.
+    }
+
 
     const updatedTenantSnap = await getDoc(tenantRef);
     const updatedTenant = updatedTenantSnap.data() as Tenant;
