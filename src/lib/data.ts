@@ -335,7 +335,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
     // Send receipt email
     const property = await getProperty(tenant.propertyId);
     try {
-        await sendPaymentReceipt({
+        const result = await sendPaymentReceipt({
             tenantEmail: tenant.email,
             tenantName: tenant.name,
             amount: paymentData.amount,
@@ -344,7 +344,10 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
             unitName: tenant.unitName,
             notes: paymentData.notes,
         });
+        
+        // Log on successful call
         await logActivity(`Sent payment receipt to ${tenant.name} (${tenant.email})`);
+        
     } catch (error) {
         console.error("Failed to send receipt email via cloud function:", error);
         // We don't throw here because the payment was still successful.

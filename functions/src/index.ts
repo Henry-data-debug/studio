@@ -20,28 +20,33 @@ const emailPort = defineString("EMAIL_PORT");
 const emailUser = defineString("EMAIL_USER");
 const emailPass = defineString("EMAIL_PASS");
 
-setGlobalOptions({ maxInstances: 10 });
+setGlobalOptions({ 
+    maxInstances: 10,
+    secrets: ["EMAIL_HOST", "EMAIL_PORT", "EMAIL_USER", "EMAIL_PASS"],
+});
 
 // A function to create and configure the email transporter
 const createTransporter = () => {
-    const port = parseInt(emailPort.value(), 10);
+    const port = parseInt(process.env.EMAIL_PORT || emailPort.value(), 10);
     if (isNaN(port)) {
         // This is a server-side configuration error, so we throw to fail fast.
-        throw new Error(`Invalid EMAIL_PORT value: "${emailPort.value()}". It must be a number.`);
+        throw new Error(`Invalid EMAIL_PORT value: "${process.env.EMAIL_PORT}". It must be a number.`);
     }
     return nodemailer.createTransport({
-        host: emailHost.value(),
+        host: process.env.EMAIL_HOST || emailHost.value(),
         port: port,
         secure: port === 465, // true for 465, false for other ports
         auth: {
-            user: emailUser.value(),
-            pass: emailPass.value(),
+            user: process.env.EMAIL_USER || emailUser.value(),
+            pass: process.env.EMAIL_PASS || emailPass.value(),
         },
     });
 };
 
 // Callable function to send a payment receipt
-export const sendPaymentReceipt = onCall(async (request) => {
+export const sendPaymentReceipt = onCall({
+    secrets: ["EMAIL_HOST", "EMAIL_PORT", "EMAIL_USER", "EMAIL_PASS"],
+}, async (request) => {
     const { tenantEmail, tenantName, amount, date, propertyName, unitName, notes } = request.data;
 
     // Validate essential data
@@ -52,7 +57,7 @@ export const sendPaymentReceipt = onCall(async (request) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-        from: `"Eracov Properties" <${emailUser.value()}>`,
+        from: `"Eracov Properties" <${process.env.EMAIL_USER || emailUser.value()}>`,
         to: tenantEmail,
         subject: "Your Payment Receipt",
         html: `
