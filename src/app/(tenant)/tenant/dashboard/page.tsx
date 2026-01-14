@@ -20,7 +20,7 @@ import { DollarSign, FileText, Calendar, Loader2, Home, LogOut, Droplets } from 
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { format, addMonths, startOfMonth } from 'date-fns';
+import { format, addMonths, startOfMonth, parseISO } from 'date-fns';
 
 const formSchema = z.object({
   details: z.string().min(10, 'Please provide more details about the issue.'),
@@ -183,7 +183,7 @@ export default function TenantDashboardPage() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{new Date(tenantDetails.lease.startDate).toLocaleDateString()}</div>
+                        <div className="text-2xl font-bold">{format(parseISO(tenantDetails.lease.startDate), 'yyyy-MM-dd')}</div>
                     </CardContent>
                 </Card>
                 <Card>
