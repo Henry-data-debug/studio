@@ -2,7 +2,6 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -23,7 +22,14 @@ export function downloadXLSX(data: any[], filename: string) {
 
   // Create a blob from the buffer
   const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-  // Trigger the download using file-saver
-  saveAs(blob, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
+  
+  // Create a temporary URL for the blob
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
