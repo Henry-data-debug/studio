@@ -1,4 +1,20 @@
+
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "waterReadings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
