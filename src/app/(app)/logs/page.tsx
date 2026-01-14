@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+import Papa from 'papaparse';
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<Log[]>([]);
@@ -41,10 +44,29 @@ export default function LogsPage() {
       }
       fetchData();
     }
-  }, [userProfile]);
+  }, [userProfile, user]);
 
   const getUserEmail = (userId: string) => {
     return users.get(userId)?.email || 'Unknown';
+  };
+
+  const handleDownloadCSV = () => {
+    const dataToExport = logs.map(log => ({
+      Date: new Date(log.timestamp).toLocaleString(),
+      User: getUserEmail(log.userId),
+      Action: log.action,
+    }));
+
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'activity_logs.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (isLoading || (userProfile?.role !== 'admin' && user?.email !== 'nigel2421@gmail.com')) {
@@ -53,7 +75,13 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Activity Logs</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Activity Logs</h2>
+        <Button onClick={handleDownloadCSV} disabled={logs.length === 0}>
+            <Download className="mr-2 h-4 w-4"/>
+            Download CSV
+        </Button>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>System Activity</CardTitle>
