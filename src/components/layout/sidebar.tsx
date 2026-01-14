@@ -46,7 +46,6 @@ const navItems = [
 ];
 
 const otherItems = [
-  { href: '/documents', icon: FolderArchive, label: 'Documents' },
   { href: '/clients', icon: Briefcase, label: 'Client Properties' },
   { href: '/landlords', icon: Users, label: 'Landlords' },
   { href: '/airbnb', icon: BedDouble, label: 'Airbnb Monitoring' },
@@ -55,7 +54,7 @@ const otherItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const { user, userProfile } = useAuth();
 
   const isActive = (href: string) => pathname === href;
@@ -64,6 +63,12 @@ export function AppSidebar() {
     await signOut(auth);
     router.push('/login');
   };
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }
 
   return (
     <Sidebar>
@@ -89,7 +94,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {navItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.href} onClick={handleLinkClick}>
               <Link href={item.href}>
                 <SidebarMenuButton
                   isActive={isActive(item.href)}
@@ -103,7 +108,7 @@ export function AppSidebar() {
           ))}
           <Separator className="my-2" />
           {otherItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.href} onClick={handleLinkClick}>
               <Link href={item.href}>
                 <SidebarMenuButton
                   isActive={isActive(item.href)}
@@ -116,7 +121,7 @@ export function AppSidebar() {
             </SidebarMenuItem>
           ))}
           {(userProfile?.role === 'admin' || user?.email === 'nigel2421@gmail.com') && (
-            <SidebarMenuItem>
+            <SidebarMenuItem onClick={handleLinkClick}>
               <Link href="/logs">
                 <SidebarMenuButton
                   isActive={isActive('/logs')}

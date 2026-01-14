@@ -18,9 +18,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Wrench,
-  FolderArchive,
   LogOut,
-  Wallet,
 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,7 +35,7 @@ const navItems = [
 export function TenantSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
 
@@ -55,6 +53,12 @@ export function TenantSidebar() {
       duration: 5000,
     });
   };
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }
 
   return (
     <Sidebar>
@@ -80,7 +84,7 @@ export function TenantSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {navItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.href} onClick={handleLinkClick}>
               <Link href={item.href}>
                 <SidebarMenuButton
                   isActive={isActive(item.href)}
