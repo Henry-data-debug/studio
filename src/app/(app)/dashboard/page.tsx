@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Building2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MaintenanceRequest, Tenant, Property } from "@/lib/types";
+import { UnitAnalytics } from "@/components/unit-analytics";
 
 export default function DashboardPage() {
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
@@ -36,6 +37,8 @@ export default function DashboardPage() {
       </div>
 
       <DashboardStats />
+
+      <UnitAnalytics />
 
       <div className="grid gap-8 lg:grid-cols-3">
         <Card className="lg:col-span-1">
