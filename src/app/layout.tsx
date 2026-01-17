@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/useAuth';
 import { PageLoader } from '@/components/page-loader';
+import { LoadingProvider } from '@/hooks/useLoading';
 
 export const metadata: Metadata = {
   title: 'Eracov Properties',
@@ -27,8 +28,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <AuthProvider>
-          <PageLoader />
-          {children}
+          <LoadingProvider>
+            <PageLoader />
+            {children}
+          </LoadingProvider>
         </AuthProvider>
         <Toaster />
       </body>

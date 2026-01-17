@@ -35,6 +35,7 @@ import { Separator } from '../ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { useLoading } from '@/hooks/useLoading';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -50,7 +51,7 @@ const otherItems = [
   { href: '/clients', icon: Briefcase, label: 'Client Properties' },
   { href: '/landlords', icon: Users, label: 'Landlords' },
   { href: '/airbnb', icon: BedDouble, label: 'Airbnb Monitoring' },
-  { href: '/communications', icon: Mail, label: 'Communications'},
+  { href: '/communications', icon: Mail, label: 'Communications' },
 ]
 
 export function AppSidebar() {
@@ -58,6 +59,7 @@ export function AppSidebar() {
   const router = useRouter();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const { user, userProfile } = useAuth();
+  const { startLoading } = useLoading();
 
   const isActive = (href: string) => pathname === href;
 
@@ -66,7 +68,8 @@ export function AppSidebar() {
     router.push('/login');
   };
 
-  const handleLinkClick = () => {
+  const handleLinkClick = (label: string) => {
+    startLoading(`Loading ${label}...`);
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -97,7 +100,7 @@ export function AppSidebar() {
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href} onClick={handleLinkClick}>
+              <Link href={item.href} onClick={() => handleLinkClick(item.label)}>
                 <SidebarMenuButton
                   isActive={isActive(item.href)}
                   tooltip={item.label}
@@ -111,7 +114,7 @@ export function AppSidebar() {
           <Separator className="my-2" />
           {otherItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href} onClick={handleLinkClick}>
+              <Link href={item.href} onClick={() => handleLinkClick(item.label)}>
                 <SidebarMenuButton
                   isActive={isActive(item.href)}
                   tooltip={item.label}
@@ -124,7 +127,7 @@ export function AppSidebar() {
           ))}
           {(userProfile?.role === 'admin' || user?.email === 'nigel2421@gmail.com') && (
             <SidebarMenuItem>
-              <Link href="/logs" onClick={handleLinkClick}>
+              <Link href="/logs" onClick={() => handleLinkClick('Activity Logs')}>
                 <SidebarMenuButton
                   isActive={isActive('/logs')}
                   tooltip="Activity Logs"
