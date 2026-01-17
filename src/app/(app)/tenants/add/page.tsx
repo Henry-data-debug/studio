@@ -13,6 +13,7 @@ import { agents } from '@/lib/types';
 import type { Property, Unit, Agent } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function AddTenantPage() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function AddTenantPage() {
   const [agent, setAgent] = useState<Agent>();
   const [rent, setRent] = useState(0);
   const [securityDeposit, setSecurityDeposit] = useState(0);
+  const [bookedWithDeposit, setBookedWithDeposit] = useState(false);
 
   useEffect(() => {
     async function fetchProperties() {
@@ -66,7 +68,7 @@ export default function AddTenantPage() {
         unitName,
         agent,
         rent,
-        securityDeposit,
+        securityDeposit: bookedWithDeposit ? securityDeposit : 0,
       });
       toast({
         title: "Tenant Added",
@@ -159,11 +161,17 @@ export default function AddTenantPage() {
                 <Input id="rent" type="number" value={rent} onChange={(e) => setRent(Number(e.target.value))} required />
             </div>
            </div>
-           <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="securityDeposit">Security Deposit (Ksh)</Label>
-                <Input id="securityDeposit" type="number" value={securityDeposit} onChange={(e) => setSecurityDeposit(Number(e.target.value))} required />
+           <div className="grid grid-cols-2 gap-4 items-center">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="bookedWithDeposit" checked={bookedWithDeposit} onCheckedChange={(checked) => setBookedWithDeposit(Boolean(checked))} />
+                <Label htmlFor="bookedWithDeposit">Booked with deposit</Label>
               </div>
+              {bookedWithDeposit && (
+                <div>
+                  <Label htmlFor="securityDeposit">Deposit Amount (Ksh)</Label>
+                  <Input id="securityDeposit" type="number" value={securityDeposit} onChange={(e) => setSecurityDeposit(Number(e.target.value))} required={bookedWithDeposit} />
+                </div>
+              )}
            </div>
           <Button type="submit" disabled={!selectedProperty || !unitName || !agent || isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,6 +21,7 @@ import { agents } from '@/lib/types';
 import type { Property, Unit, Agent } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { FilePlus2, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface AddTenantDialogProps {
   onTenantAdded: () => void;
@@ -42,6 +44,7 @@ export function AddTenantDialog({ onTenantAdded }: AddTenantDialogProps) {
   const [agent, setAgent] = useState<Agent>();
   const [rent, setRent] = useState(0);
   const [securityDeposit, setSecurityDeposit] = useState(0);
+  const [bookedWithDeposit, setBookedWithDeposit] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -75,6 +78,7 @@ export function AddTenantDialog({ onTenantAdded }: AddTenantDialogProps) {
     setAgent(undefined);
     setRent(0);
     setSecurityDeposit(0);
+    setBookedWithDeposit(false);
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,7 +96,7 @@ export function AddTenantDialog({ onTenantAdded }: AddTenantDialogProps) {
         unitName,
         agent,
         rent,
-        securityDeposit,
+        securityDeposit: bookedWithDeposit ? securityDeposit : 0,
       });
       toast({
         title: "Tenant Added",
@@ -197,11 +201,17 @@ export function AddTenantDialog({ onTenantAdded }: AddTenantDialogProps) {
                       <Input id="rent-dialog" type="number" value={rent} onChange={(e) => setRent(Number(e.target.value))} required />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="securityDeposit-dialog">Security Deposit (Ksh)</Label>
-                      <Input id="securityDeposit-dialog" type="number" value={securityDeposit} onChange={(e) => setSecurityDeposit(Number(e.target.value))} required />
+                <div className="grid grid-cols-2 gap-4 items-center">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="bookedWithDeposit-dialog" checked={bookedWithDeposit} onCheckedChange={(checked) => setBookedWithDeposit(Boolean(checked))} />
+                        <Label htmlFor="bookedWithDeposit-dialog">Booked with deposit</Label>
                     </div>
+                    {bookedWithDeposit && (
+                        <div>
+                            <Label htmlFor="securityDeposit-dialog">Deposit Amount (Ksh)</Label>
+                            <Input id="securityDeposit-dialog" type="number" value={securityDeposit} onChange={(e) => setSecurityDeposit(Number(e.target.value))} required={bookedWithDeposit} />
+                        </div>
+                    )}
                 </div>
               </div>
               <DialogFooter>
