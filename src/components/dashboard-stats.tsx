@@ -27,12 +27,28 @@ export function DashboardStats() {
   const totalProperties = properties.length;
   const pendingMaintenance = maintenanceRequests.filter(r => r.status !== 'completed').length;
   const overdueRents = tenants.filter(t => t.lease && t.lease.paymentStatus === 'Overdue').length;
-  const occupiedUnits = properties.reduce((count, property) => {
-    if (Array.isArray(property.units)) {
-      return count + property.units.filter(unit => unit.status === 'rented').length;
-    }
-    return count;
-  }, 0);
+  
+  const occupiedUnits = (() => {
+    const occupiedUnitIdentifiers = new Set<string>();
+
+    // Add units that have a tenant
+    tenants.forEach(tenant => {
+      occupiedUnitIdentifiers.add(`${tenant.propertyId}-${tenant.unitName}`);
+    });
+
+    // Add units that are marked as occupied by their status (e.g., airbnb, client occupied)
+    properties.forEach(property => {
+      if (Array.isArray(property.units)) {
+        property.units.forEach(unit => {
+          if (unit.status !== 'vacant') {
+            occupiedUnitIdentifiers.add(`${property.id}-${unit.name}`);
+          }
+        });
+      }
+    });
+
+    return occupiedUnitIdentifiers.size;
+  })();
 
   const stats = [
     { title: "Total Tenants", value: totalTenants, icon: Users, color: "text-blue-500" },
