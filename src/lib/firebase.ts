@@ -27,3 +27,5 @@ export const functions = getFunctions(app);
 
 // Export a callable function reference
 export const sendPaymentReceipt = httpsCallable(functions, 'sendPaymentReceipt');
+export const sendCustomEmail = httpsCallable(functions, 'sendCustomEmail');
+export const checkAndSendLeaseReminders = httpsCallable(functions, 'checkAndSendLeaseReminders');

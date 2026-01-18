@@ -42,6 +42,7 @@ const navItems = [
   { href: '/tenants', icon: Users, label: 'Tenants' },
   { href: '/tenants/archived', icon: Archive, label: 'Archived Tenants' },
   { href: '/accounts', icon: Banknote, label: 'Accounts' },
+  { href: '/documents', icon: FileText, label: 'My Documents' },
   { href: '/maintenance', icon: Wrench, label: 'Maintenance' },
   { href: '/water-meter/add', icon: Droplets, label: 'Add Water Reading' },
   { href: '/properties', icon: Building2, label: 'Properties' },
@@ -134,6 +135,19 @@ export function AppSidebar() {
                 >
                   <History />
                   <span>Activity Logs</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          )}
+          {userProfile?.role === 'homeowner' && (
+            <SidebarMenuItem>
+              <Link href="/homeowner-dashboard" onClick={() => handleLinkClick('Homeowner Dashboard')}>
+                <SidebarMenuButton
+                  isActive={isActive('/homeowner-dashboard')}
+                  tooltip="Homeowner Dashboard"
+                >
+                  <LayoutDashboard />
+                  <span>Homeowner Dashboard</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>

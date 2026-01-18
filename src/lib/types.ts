@@ -9,8 +9,20 @@ export type Property = {
   landlordId?: string;
 };
 
-export type OwnershipType = 'SM' | 'Landlord';
-export const ownershipTypes: OwnershipType[] = ['SM', 'Landlord'];
+export type PropertyOwner = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  bankAccount?: string;
+  assignedUnits: {
+    propertyId: string;
+    unitNames: string[];
+  }[];
+};
+
+export type OwnershipType = 'SM' | 'Landlord' | 'Client';
+export const ownershipTypes: OwnershipType[] = ['SM', 'Landlord', 'Client'];
 
 export type UnitType = 'Studio' | 'One Bedroom' | 'Two Bedroom' | 'Shop' | 'Three Bedroom';
 export const unitTypes: UnitType[] = ['Studio', 'One Bedroom', 'Two Bedroom', 'Shop', 'Three Bedroom'];
@@ -31,26 +43,29 @@ export type Agent = 'Susan' | 'Beatrice' | 'Nelly' | 'Dennis' | 'Peris' | 'Felis
 export const agents: Agent[] = ['Susan', 'Beatrice', 'Nelly', 'Dennis', 'Peris', 'Felista', 'Martha', 'Thomas', 'Kiragu'];
 
 export type WaterMeterReading = {
-    id: string;
-    tenantId: string;
-    propertyId: string;
-    unitName: string;
-    priorReading: number;
-    currentReading: number;
-    consumption: number;
-    rate: number;
-    amount: number;
-    date: string;
-    createdAt: Date;
+  id: string;
+  tenantId: string;
+  propertyId: string;
+  unitName: string;
+  priorReading: number;
+  currentReading: number;
+  consumption: number;
+  rate: number;
+  amount: number;
+  date: string;
+  createdAt: Date;
 }
 
 export type Payment = {
-    id: string;
-    tenantId: string;
-    amount: number;
-    date: string;
-    notes?: string;
-    createdAt: Date;
+  id: string;
+  tenantId: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  createdAt: Date;
+  reference?: string;
+  status: 'completed' | 'pending' | 'failed';
+  type: 'Rent' | 'Deposit' | 'Other';
 };
 
 export type Tenant = {
@@ -64,10 +79,12 @@ export type Tenant = {
   agent: Agent;
   status: 'active' | 'archived';
   securityDeposit: number;
+  residentType: 'Tenant' | 'Homeowner';
   lease: {
     startDate: string;
     endDate: string;
     rent: number;
+    serviceCharge?: number;
     paymentStatus: 'Paid' | 'Pending' | 'Overdue';
     lastPaymentDate?: string;
   };
@@ -75,7 +92,7 @@ export type Tenant = {
 };
 
 export type ArchivedTenant = Tenant & {
-    archivedAt: string;
+  archivedAt: string;
 }
 
 export type MaintenanceRequest = {
@@ -89,24 +106,24 @@ export type MaintenanceRequest = {
   createdAt: Date;
 };
 
-export type UserRole = 'admin' | 'viewer' | 'agent' | 'tenant' | 'water-meter-reader' | 'landlord';
+export type UserRole = 'admin' | 'viewer' | 'agent' | 'tenant' | 'water-meter-reader' | 'landlord' | 'homeowner';
 
 export type UserProfile = {
-    id: string;
-    email: string;
-    role: UserRole;
-    name?: string;
-    tenantId?: string;
-    propertyId?: string;
-    landlordId?: string;
-    tenantDetails?: Tenant;
+  id: string;
+  email: string;
+  role: UserRole;
+  name?: string;
+  tenantId?: string;
+  propertyId?: string;
+  landlordId?: string;
+  tenantDetails?: Tenant;
 }
 
 export type Log = {
-    id: string;
-    userId: string;
-    action: string;
-    timestamp: string;
+  id: string;
+  userId: string;
+  action: string;
+  timestamp: string;
 }
 
 export type Landlord = {
@@ -115,6 +132,45 @@ export type Landlord = {
   email: string;
   phone: string;
   bankAccount: string;
-  earnings: number;
   userId?: string;
+};
+
+export type Communication = {
+  id: string;
+  type: 'announcement' | 'automation';
+  subType?: string;
+  subject: string;
+  body: string;
+  recipients: string[];
+  recipientCount: number;
+  senderId: string;
+  timestamp: string;
+  status: 'sent' | 'failed';
+  relatedTenantId?: string;
+};
+
+export type ServiceChargeStatement = {
+  id: string;
+  tenantId: string;
+  propertyId: string;
+  unitName: string;
+  period: string; // e.g., "January 2026"
+  amount: number;
+  items: { description: string; amount: number }[];
+  date: string;
+  status: 'Paid' | 'Pending';
+  createdAt: Date;
+};
+
+export type DocumentType = 'Rent Receipt' | 'Water Bill' | 'Service Charge';
+
+export type FinancialDocument = {
+  id: string;
+  type: DocumentType;
+  date: string;
+  amount: number;
+  title: string;
+  status: 'Paid' | 'Pending' | 'Overdue';
+  description?: string;
+  sourceData: Payment | WaterMeterReading | ServiceChargeStatement;
 };

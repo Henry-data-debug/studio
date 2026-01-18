@@ -9,6 +9,7 @@ import { Loader, WandSparkles, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getMaintenanceResponseDraft } from '@/app/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLoading } from '@/hooks/useLoading';
 
 interface Props {
   request: MaintenanceRequest;
@@ -21,8 +22,11 @@ export function MaintenanceResponseGenerator({ request, tenant, property }: Prop
   const [draft, setDraft] = useState<{ draftResponse: string; suggestedActions: string } | null>(null);
   const { toast } = useToast();
 
+  const { startLoading, stopLoading } = useLoading();
+
   const handleGenerate = async () => {
     setIsLoading(true);
+    startLoading('Generating AI Draft...');
     setDraft(null);
 
     const input = {
@@ -32,17 +36,22 @@ export function MaintenanceResponseGenerator({ request, tenant, property }: Prop
       urgency: request.urgency,
     };
 
-    const result = await getMaintenanceResponseDraft(input);
-    setIsLoading(false);
-
-    if (result.success && result.data) {
-      setDraft(result.data);
-      toast({ title: 'Draft Generated', description: 'AI has generated a response draft.' });
-    } else {
-      toast({ variant: 'destructive', title: 'Error', description: result.error });
+    try {
+      const result = await getMaintenanceResponseDraft(input);
+      if (result.success && result.data) {
+        setDraft(result.data);
+        toast({ title: 'Draft Generated', description: 'AI has generated a response draft.' });
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Request failed.' });
+    } finally {
+      setIsLoading(false);
+      stopLoading();
     }
   };
-  
+
   const copyToClipboard = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text);
     toast({ description: `${fieldName} copied to clipboard.` });
@@ -52,17 +61,17 @@ export function MaintenanceResponseGenerator({ request, tenant, property }: Prop
     <div className="space-y-6">
       <Card>
         <CardHeader>
-            <CardTitle>Request Details</CardTitle>
-            <CardDescription>Details for the maintenance request from {tenant.name}.</CardDescription>
+          <CardTitle>Request Details</CardTitle>
+          <CardDescription>Details for the maintenance request from {tenant.name}.</CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-2">
-            <p><strong>Tenant:</strong> {tenant.name}</p>
-            <p><strong>Property:</strong> {property.name} ({property.address})</p>
-            <p><strong>Urgency:</strong> <span className="capitalize">{request.urgency}</span></p>
-            <p><strong>Request:</strong> {request.details}</p>
+          <p><strong>Tenant:</strong> {tenant.name}</p>
+          <p><strong>Property:</strong> {property.name} ({property.address})</p>
+          <p><strong>Urgency:</strong> <span className="capitalize">{request.urgency}</span></p>
+          <p><strong>Request:</strong> {request.details}</p>
         </CardContent>
       </Card>
-      
+
       <div className="flex justify-center">
         <Button onClick={handleGenerate} disabled={isLoading}>
           {isLoading ? (
@@ -78,19 +87,19 @@ export function MaintenanceResponseGenerator({ request, tenant, property }: Prop
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <Label htmlFor="draft-response">Draft Response to Tenant</Label>
-                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(draft.draftResponse, 'Response')}>
-                    <Copy className="h-4 w-4" />
-                </Button>
+              <Label htmlFor="draft-response">Draft Response to Tenant</Label>
+              <Button variant="ghost" size="icon" onClick={() => copyToClipboard(draft.draftResponse, 'Response')}>
+                <Copy className="h-4 w-4" />
+              </Button>
             </div>
             <Textarea id="draft-response" value={draft.draftResponse} rows={10} readOnly className="bg-muted" />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <Label htmlFor="suggested-actions">Suggested Internal Actions</Label>
-                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(draft.suggestedActions, 'Actions')}>
-                    <Copy className="h-4 w-4" />
-                </Button>
+              <Label htmlFor="suggested-actions">Suggested Internal Actions</Label>
+              <Button variant="ghost" size="icon" onClick={() => copyToClipboard(draft.suggestedActions, 'Actions')}>
+                <Copy className="h-4 w-4" />
+              </Button>
             </div>
             <Textarea id="suggested-actions" value={draft.suggestedActions} rows={10} readOnly className="bg-muted" />
           </div>

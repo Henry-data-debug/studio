@@ -8,12 +8,16 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {setGlobalOptions} from "firebase-functions";
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import { setGlobalOptions } from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as nodemailer from "nodemailer";
 
-setGlobalOptions({ 
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
+
+setGlobalOptions({
     maxInstances: 10,
     secrets: ["EMAIL_HOST", "EMAIL_PORT", "EMAIL_USER", "EMAIL_PASS"],
 });
@@ -49,7 +53,7 @@ export const sendPaymentReceipt = onCall(async (request) => {
         logger.error("Email environment variables are not set.");
         throw new HttpsError('internal', 'Server is not configured for sending emails.');
     }
-    
+
     const transporter = createTransporter();
 
     const mailOptions = {
@@ -83,5 +87,58 @@ export const sendPaymentReceipt = onCall(async (request) => {
         logger.error("Error sending email:", error);
         // Throw a specific error for the client
         throw new HttpsError("internal", "Failed to send email. Please check server logs for details.");
+    }
+});
+
+// Callable function to send a custom email announcement
+export const sendCustomEmail = onCall(async (request) => {
+    const { recipients, subject, body } = request.data;
+
+    // Validate essential data
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0 || !subject || !body) {
+        logger.error("Missing required data for sending custom emails.", request.data);
+        throw new HttpsError('invalid-argument', 'Missing recipients, subject, or message body.');
+    }
+
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        logger.error("Email environment variables are not set.");
+        throw new HttpsError('internal', 'Server is not configured for sending emails.');
+    }
+
+    const transporter = createTransporter();
+
+    // In a real production app, we would use a queue or batch sending
+    // For this implementation, we'll send to each recipient
+    const sendPromises = recipients.map(email => {
+        const mailOptions = {
+            from: `"Eracov Properties" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: subject,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+                    <div style="text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 15px; margin-bottom: 20px;">
+                        <h1 style="color: #333; margin: 0; font-size: 24px;">Eracov Properties</h1>
+                    </div>
+                    <h2 style="color: #333; font-size: 18px; margin-bottom: 15px;">${subject}</h2>
+                    <div style="line-height: 1.6; color: #444; font-size: 16px;">
+                        ${body.replace(/\n/g, '<br>')}
+                    </div>
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.8em; color: #888; text-align: center;">
+                        <p>You are receiving this email as a resident of an Eracov Properties managed development.</p>
+                        <p>Sincerely,<br>Management Team</p>
+                    </div>
+                </div>
+            `,
+        };
+        return transporter.sendMail(mailOptions);
+    });
+
+    try {
+        await Promise.all(sendPromises);
+        logger.info(`Custom email "${subject}" sent to ${recipients.length} recipients.`);
+        return { success: true, message: `Email sent successfully to ${recipients.length} recipients.` };
+    } catch (error) {
+        logger.error("Error sending bulk email:", error);
+        throw new HttpsError("internal", "Failed to send one or more emails. Please check server logs.");
     }
 });

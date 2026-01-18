@@ -10,6 +10,7 @@ import { ArrowRight, Building2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MaintenanceRequest, Tenant, Property } from "@/lib/types";
 import { UnitAnalytics } from "@/components/unit-analytics";
+import { AIPropertyInsights } from "@/components/ai-property-insights";
 
 export default function DashboardPage() {
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
@@ -38,6 +39,10 @@ export default function DashboardPage() {
 
       <DashboardStats />
 
+      {properties.length > 0 && (
+        <AIPropertyInsights property={properties[0]} />
+      )}
+
       <UnitAnalytics />
 
       <div className="grid gap-8 lg:grid-cols-3">
@@ -56,12 +61,12 @@ export default function DashboardPage() {
           <CardContent>
             <ul className="space-y-4">
               {recentRequests.map(req => (
-                <li key={req.id} className="flex items-center justify-between">
+                <li key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 hover:bg-muted/30 rounded-lg transition-colors">
                   <div className="flex flex-col min-w-0 flex-1 mr-4">
                     <span className="font-medium truncate">{getTenantName(req.tenantId)} - <span className="text-muted-foreground">{getPropertyName(req.propertyId)}</span></span>
                     <span className="text-sm text-muted-foreground truncate">{req.details}</span>
                   </div>
-                  <span className="text-xs sm:text-sm font-medium whitespace-nowrap">{new Date(req.date).toLocaleDateString()}</span>
+                  <span className="text-xs sm:text-sm font-medium whitespace-nowrap bg-muted px-2 py-1 rounded-full">{new Date(req.date).toLocaleDateString()}</span>
                 </li>
               ))}
               {recentRequests.length === 0 && (
@@ -78,19 +83,22 @@ export default function DashboardPage() {
           <CardContent>
             <ul className="space-y-4">
               {properties.map(prop => (
-                <li key={prop.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <li key={prop.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors gap-3">
                   <div className="flex items-center gap-4">
-                    <div className="bg-primary/10 p-2 rounded-full">
+                    <div className="bg-primary/10 p-2 rounded-full shrink-0">
                       <Building2 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <span className="font-medium">{prop.name}</span>
-                      <p className="text-sm text-muted-foreground">{prop.address}</p>
+                      <p className="text-sm text-muted-foreground break-all">{prop.address}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="font-semibold">{Array.isArray(prop.units) ? prop.units.length : 0}</span>
-                    <p className="text-xs text-muted-foreground">Units</p>
+                  <div className="flex sm:block items-center justify-between sm:text-right w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0">
+                    <span className="text-sm text-muted-foreground sm:hidden">Units</span>
+                    <div>
+                      <span className="font-semibold">{Array.isArray(prop.units) ? prop.units.length : 0}</span>
+                      <p className="text-xs text-muted-foreground hidden sm:block">Units</p>
+                    </div>
                   </div>
                 </li>
               ))}

@@ -1,0 +1,128 @@
+
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { FinancialDocument, WaterMeterReading, Payment, ServiceChargeStatement } from '@/lib/types';
+
+// Helper to add company header
+const addHeader = (doc: jsPDF, title: string) => {
+    doc.setTextColor(40);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Eracov Properties', 14, 20);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Mombasa Road, Nairobi', 14, 26);
+    doc.text('Phone: +254 700 000 000', 14, 30);
+    doc.text('Email: management@eracov.com', 14, 34);
+
+    // Document Title
+    doc.setFontSize(16);
+    doc.setTextColor(0, 51, 102); // Dark blue
+    doc.text(title.toUpperCase(), 196, 20, { align: 'right' });
+
+    // Line separator
+    doc.setDrawColor(200);
+    doc.line(14, 40, 196, 40);
+};
+
+// Helper for currency formatting
+const formatCurrency = (amount: number) => `KSh ${amount.toLocaleString()}`;
+
+export const generateDocumentPDF = (document: FinancialDocument) => {
+    const doc = new jsPDF();
+
+    if (document.type === 'Rent Receipt') {
+        generateRentReceipt(doc, document);
+    } else if (document.type === 'Water Bill') {
+        generateWaterBill(doc, document);
+    } else if (document.type === 'Service Charge') {
+        generateServiceCharge(doc, document);
+    }
+
+    // Save the PDF
+    doc.save(`${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
+};
+
+const generateRentReceipt = (doc: jsPDF, document: FinancialDocument) => {
+    addHeader(doc, 'Rent Receipt');
+
+    const payment = document.sourceData as Payment;
+    const dateStr = new Date(payment.date).toLocaleDateString();
+
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+
+    doc.text(`Receipt No: #${payment.id.substring(0, 8).toUpperCase()}`, 14, 50);
+    doc.text(`Date: ${dateStr}`, 14, 56);
+    doc.text(`Status: ${document.status}`, 14, 62);
+
+    autoTable(doc, {
+        startY: 70,
+        head: [['Description', 'Amount']],
+        body: [
+            ['Rent Payment', formatCurrency(payment.amount)],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [22, 163, 74] }, // Green
+        foot: [['TOTAL PAID', formatCurrency(payment.amount)]],
+        footStyles: { fillColor: [240, 253, 244], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+
+    doc.text('Thank you for your payment.', 14, (doc as any).lastAutoTable.finalY + 20);
+};
+
+const generateWaterBill = (doc: jsPDF, document: FinancialDocument) => {
+    addHeader(doc, 'Water Bill');
+
+    const reading = document.sourceData as WaterMeterReading;
+    const dateStr = new Date(reading.date).toLocaleDateString();
+
+    doc.text(`Bill No: #${reading.id.substring(0, 8).toUpperCase()}`, 14, 50);
+    doc.text(`Date: ${dateStr}`, 14, 56);
+    doc.text(`Unit: ${reading.unitName}`, 14, 62);
+
+    autoTable(doc, {
+        startY: 70,
+        head: [['Item', 'Usage / Rate', 'Amount']],
+        body: [
+            ['Previous Reading', `${reading.priorReading} units`, '-'],
+            ['Current Reading', `${reading.currentReading} units`, '-'],
+            ['Consumption', `${reading.consumption} units`, '-'],
+            ['Rate per Unit', formatCurrency(reading.rate), '-'],
+            ['Total Cost', '', formatCurrency(reading.amount)],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235] }, // Blue
+        foot: [['TOTAL PAYABLE', '', formatCurrency(reading.amount)]],
+        footStyles: { fillColor: [239, 246, 255], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+
+    doc.text('Please pay by M-Pesa or Bank Transfer.', 14, (doc as any).lastAutoTable.finalY + 20);
+};
+
+const generateServiceCharge = (doc: jsPDF, document: FinancialDocument) => {
+    addHeader(doc, 'Service Charge Statement');
+
+    const stmt = document.sourceData as ServiceChargeStatement;
+    const dateStr = new Date(stmt.date).toLocaleDateString();
+
+    doc.text(`Ref No: #${stmt.id.substring(0, 8).toUpperCase()}`, 14, 50);
+    doc.text(`Date: ${dateStr}`, 14, 56);
+    doc.text(`Period: ${stmt.period}`, 14, 62);
+
+    const tableBody = stmt.items.map(item => [item.description, formatCurrency(item.amount)]);
+
+    autoTable(doc, {
+        startY: 70,
+        head: [['Description', 'Amount']],
+        body: tableBody,
+        theme: 'plain',
+        headStyles: { fillColor: [217, 119, 6] }, // Amber
+        foot: [['TOTAL', formatCurrency(stmt.amount)]],
+        footStyles: { fillColor: [255, 251, 235], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'right' },
+        columnStyles: { 1: { halign: 'right' } }
+    });
+
+    doc.text('This statement is for your records.', 14, (doc as any).lastAutoTable.finalY + 20);
+};

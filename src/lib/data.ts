@@ -1,8 +1,11 @@
 
-
 import { initializeApp, getApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import type { Property, Tenant, MaintenanceRequest, Unit, ArchivedTenant, UserProfile, WaterMeterReading, Payment, UnitType, OwnershipType, Log, Landlord } from '@/lib/types';
+import {
+    Property, Unit, WaterMeterReading, Payment, Tenant,
+    ArchivedTenant, MaintenanceRequest, UserProfile, Log, Landlord,
+    UserRole, UnitStatus, PropertyOwner, FinancialDocument, ServiceChargeStatement, Communication
+} from '@/lib/types';
 import { db, firebaseConfig, sendPaymentReceipt } from './firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, setDoc, serverTimestamp, arrayUnion, writeBatch, orderBy, deleteDoc, limit } from 'firebase/firestore';
 import propertiesData from '../../backend.json';
@@ -32,9 +35,9 @@ export async function getLogs(): Promise<Log[]> {
 }
 
 async function getCollection<T>(collectionName: string): Promise<T[]> {
-  const q = query(collection(db, collectionName));
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+    const q = query(collection(db, collectionName));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
 }
 
 async function getDocument<T>(collectionName: string, id: string): Promise<T | null> {
@@ -49,7 +52,7 @@ async function getDocument<T>(collectionName: string, id: string): Promise<T | n
 }
 
 export async function getProperties(): Promise<Property[]> {
-  return Promise.resolve(propertiesData.properties as Property[]);
+    return Promise.resolve(propertiesData.properties as Property[]);
 }
 
 export async function getTenants(): Promise<Tenant[]> {
@@ -68,14 +71,14 @@ export async function getMaintenanceRequests(): Promise<MaintenanceRequest[]> {
 
 export async function getProperty(id: string): Promise<Property | null> {
     const property = propertiesData.properties.find(p => p.id === id);
-    return Promise.resolve(property || null);
+    return Promise.resolve(property as Property || null);
 }
 
 export async function getTenant(id: string): Promise<Tenant | null> {
     const tenant = await getDocument<Tenant>('tenants', id);
     if (tenant) {
         const readingsQuery = query(
-            collection(db, 'waterReadings'), 
+            collection(db, 'waterReadings'),
             where('tenantId', '==', id),
             orderBy('createdAt', 'desc'),
             limit(1) // We only need the latest one for the dashboard card
@@ -88,15 +91,15 @@ export async function getTenant(id: string): Promise<Tenant | null> {
 }
 
 export async function addTenant({
-  name,
-  email,
-  phone,
-  idNumber,
-  propertyId,
-  unitName,
-  agent,
-  rent,
-  securityDeposit
+    name,
+    email,
+    phone,
+    idNumber,
+    propertyId,
+    unitName,
+    agent,
+    rent,
+    securityDeposit
 }: Omit<Tenant, 'id' | 'status' | 'lease'> & { rent: number; securityDeposit: number }): Promise<void> {
 
     const newTenantData = {
@@ -117,7 +120,7 @@ export async function addTenant({
         securityDeposit: securityDeposit || 0,
     };
     const tenantDocRef = await addDoc(collection(db, 'tenants'), newTenantData);
-    
+
     await logActivity(`Created tenant: ${name} (${email})`);
 
     const appName = 'tenant-creation-app-' + newTenantData.email;
@@ -133,8 +136,11 @@ export async function addTenant({
         const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, phone);
         const user = userCredential.user;
 
-        await createUserProfile(user.uid, user.email || email, 'tenant', { 
-            name: name, 
+        // Determine role based on residentType (default to tenant)
+        const role: UserRole = (newTenantData as any).residentType === 'Homeowner' ? 'homeowner' : 'tenant';
+
+        await createUserProfile(user.uid, user.email || email, role, {
+            name: name,
             tenantId: tenantDocRef.id,
             propertyId: propertyId
         });
@@ -163,21 +169,21 @@ export async function updateProperty(propertyId: string, data: Partial<Property>
         if (data.name) propertyToUpdate.name = data.name;
         if (data.address) propertyToUpdate.address = data.address;
         if (data.type) propertyToUpdate.type = data.type;
-        
+
         // Update units
         if (data.units) {
             propertyToUpdate.units = data.units.map(updatedUnit => {
                 const existingUnit = propertyToUpdate.units.find(u => u.name === updatedUnit.name);
                 const finalUnit = { ...existingUnit, ...updatedUnit };
-                
+
                 if (finalUnit.landlordId === 'none') {
                     delete finalUnit.landlordId;
                 }
-                
+
                 return finalUnit;
             }) as Unit[];
         }
-        
+
         propertiesData.properties[propertyIndex] = propertyToUpdate;
 
         await logActivity(`Updated property: ${data.name || propertyToUpdate.name}`);
@@ -191,12 +197,12 @@ export async function archiveTenant(tenantId: string): Promise<void> {
     if (tenant) {
         const tenantRef = doc(db, 'tenants', tenantId);
         const archivedTenantRef = doc(db, 'archived_tenants', tenantId);
-        
+
         const batch = writeBatch(db);
         batch.set(archivedTenantRef, { ...tenant, archivedAt: new Date().toISOString(), status: 'archived' });
         batch.delete(tenantRef);
         await batch.commit();
-        
+
         await logActivity(`Archived tenant: ${tenant.name}`);
         console.log(`Unit ${tenant.unitName} in property ${tenant.propertyId} should be marked as vacant.`);
     }
@@ -206,7 +212,7 @@ export async function updateTenant(tenantId: string, tenantData: Partial<Tenant>
     const oldTenant = await getTenant(tenantId);
     const tenantRef = doc(db, 'tenants', tenantId);
     await updateDoc(tenantRef, tenantData);
-    
+
     await logActivity(`Updated tenant: ${tenantData.name || oldTenant?.name}`);
 
     if (oldTenant && (oldTenant.propertyId !== tenantData.propertyId || oldTenant.unitName !== tenantData.unitName)) {
@@ -231,7 +237,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     const docSnap = await getDoc(userProfileRef);
     if (docSnap.exists()) {
         const userProfile = { id: docSnap.id, ...docSnap.data() } as UserProfile;
-        if (userProfile.role === 'tenant' && userProfile.tenantId) {
+        if ((userProfile.role === 'tenant' || userProfile.role === 'homeowner') && userProfile.tenantId) {
             const tenantData = await getTenant(userProfile.tenantId);
             if (tenantData) {
                 userProfile.tenantDetails = tenantData;
@@ -254,13 +260,13 @@ export async function addMaintenanceRequest(request: Omit<MaintenanceRequest, 'i
 
 export async function getTenantMaintenanceRequests(tenantId: string): Promise<MaintenanceRequest[]> {
     const q = query(
-        collection(db, "maintenanceRequests"), 
+        collection(db, "maintenanceRequests"),
         where("tenantId", "==", tenantId),
         orderBy('createdAt', 'desc')
     );
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
-    
+
     return requests;
 }
 
@@ -289,19 +295,39 @@ export async function addWaterMeterReading(data: {
         date: new Date().toISOString().split('T')[0],
         createdAt: serverTimestamp(),
     };
-    
+
     await addDoc(collection(db, 'waterReadings'), readingData);
     await logActivity(`Added water reading for unit ${data.unitName}`);
 }
 
 export async function getTenantPayments(tenantId: string): Promise<Payment[]> {
     const q = query(
-        collection(db, "payments"), 
+        collection(db, "payments"),
         where("tenantId", "==", tenantId),
         orderBy('date', 'desc')
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
+}
+
+export async function getPropertyWaterReadings(propertyId: string): Promise<WaterMeterReading[]> {
+    const q = query(
+        collection(db, 'waterReadings'),
+        where('propertyId', '==', propertyId),
+        orderBy('date', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaterMeterReading));
+}
+
+export async function getPropertyMaintenanceRequests(propertyId: string): Promise<MaintenanceRequest[]> {
+    const q = query(
+        collection(db, 'maintenanceRequests'),
+        where('propertyId', '==', propertyId),
+        orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MaintenanceRequest));
 }
 
 export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>) {
@@ -331,7 +357,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
         };
     }
     await updateDoc(tenantRef, newLeaseData);
-    
+
     // Send receipt email
     const property = await getProperty(tenant.propertyId);
     try {
@@ -344,10 +370,10 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
             unitName: tenant.unitName,
             notes: paymentData.notes,
         });
-        
+
         // Log on successful call
         await logActivity(`Sent payment receipt to ${tenant.name} (${tenant.email})`);
-        
+
     } catch (error) {
         console.error("Failed to send receipt email via cloud function:", error);
         // We don't throw here because the payment was still successful.
@@ -365,7 +391,7 @@ export async function addPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>)
             const newStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
             const newEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-            if(updatedTenant.lease.paymentStatus === 'Paid'){
+            if (updatedTenant.lease.paymentStatus === 'Paid') {
                 await updateDoc(tenantRef, {
                     'lease.paymentStatus': 'Pending',
                     'lease.startDate': newStartDate.toISOString().split('T')[0],
@@ -383,6 +409,168 @@ export async function updateUnitTypesFromCSV(data: { PropertyName: string; UnitN
 
 
 // Landlord Functions
+
+export async function getCommunications(): Promise<Communication[]> {
+    return getCollection<Communication>('communications');
+}
+
+export async function getFinancialDocuments(userId: string, role: UserRole): Promise<FinancialDocument[]> {
+    let documents: FinancialDocument[] = [];
+
+    // Logic for Landlords and Property Owners (View documents for all their units)
+    if (role === 'landlord' || role === 'homeowner') {
+        let associatedUnitNames: string[] = [];
+        let associatedPropertyIds: string[] = [];
+
+        if (role === 'landlord') {
+            // Find landlord record linked to this user
+            const allLandlords = await getLandlords();
+            const landlord = allLandlords.find(l => l.email === userId || l.userId === userId); // Basic matching
+            if (landlord) {
+                // In a real app we'd query properties where landlordId matches. 
+                // For now, we'll scan properties for units assigned to this landlord.
+                const allProps = await getProperties();
+                allProps.forEach(p => {
+                    p.units.forEach(u => {
+                        if (u.landlordId === landlord.id) {
+                            associatedUnitNames.push(u.name);
+                            if (!associatedPropertyIds.includes(p.id)) associatedPropertyIds.push(p.id);
+                        }
+                    });
+                });
+            }
+        } else if (role === 'homeowner') {
+            // Find property owner record
+            const allOwners = await getPropertyOwners();
+            const owner = allOwners.find(o => o.email === userId);
+            if (owner) {
+                owner.assignedUnits.forEach(au => {
+                    au.unitNames.forEach(name => {
+                        associatedUnitNames.push(name);
+                        if (!associatedPropertyIds.includes(au.propertyId)) associatedPropertyIds.push(au.propertyId);
+                    });
+                });
+            }
+        }
+
+        if (associatedUnitNames.length > 0) {
+            // Fetch Tenants in these units to get their payments/bills
+            const allTenants = await getTenants();
+            const keyTenants = allTenants.filter(t =>
+                associatedPropertyIds.includes(t.propertyId) && associatedUnitNames.includes(t.unitName)
+            );
+            const keyTenantIds = keyTenants.map(t => t.id);
+
+            if (keyTenantIds.length > 0) {
+                // Fetch Payments
+                const paymentsSnapshot = await getDocs(query(collection(db, 'payments'), where('tenantId', 'in', keyTenantIds.slice(0, 30)))); // Limit 30 for 'in' query constraint
+                const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
+
+                documents.push(...payments.map(p => {
+                    const t = keyTenants.find(kt => kt.id === p.tenantId);
+                    return {
+                        id: p.id,
+                        type: 'Rent Receipt' as const,
+                        date: p.date,
+                        amount: p.amount,
+                        title: `Rent Paid - ${t?.unitName} (${t?.name})`,
+                        status: 'Paid' as const,
+                        sourceData: p
+                    };
+                }));
+
+                // Fetch Water Bills
+                const waterSnapshot = await getDocs(query(collection(db, 'waterReadings'), where('tenantId', 'in', keyTenantIds.slice(0, 30))));
+                const readings = waterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaterMeterReading));
+
+                documents.push(...readings.map(r => {
+                    const t = keyTenants.find(kt => kt.id === r.tenantId);
+                    return {
+                        id: r.id,
+                        type: 'Water Bill' as const,
+                        date: r.date,
+                        amount: r.amount,
+                        title: `Water Bill - ${t?.unitName}`,
+                        status: 'Paid' as const,
+                        sourceData: r
+                    };
+                }));
+            }
+        }
+    }
+
+    // Logic for Tenants (View their own documents)
+    if (role === 'tenant') {
+        const tenant = await getTenant(userId) || (await getTenants()).find(t => t.email === userId);
+
+        if (tenant) {
+            // 1. Fetch Payments (Rent Receipts)
+            const paymentsQuery = query(collection(db, 'payments'), where('tenantId', '==', tenant.id));
+            const paymentsSnapshot = await getDocs(paymentsQuery);
+            const payments = paymentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Payment));
+
+            documents.push(...payments.map(p => ({
+                id: p.id,
+                type: 'Rent Receipt' as const,
+                date: p.date,
+                amount: p.amount,
+                title: `Rent Payment - ${new Date(p.date).toLocaleDateString('default', { month: 'short', year: 'numeric' })}`,
+                status: 'Paid' as const,
+                sourceData: p
+            })));
+
+            // 2. Fetch Water Meter Readings (Water Bills)
+            const waterQuery = query(collection(db, 'waterReadings'), where('tenantId', '==', tenant.id));
+            const waterSnapshot = await getDocs(waterQuery);
+            const readings = waterSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaterMeterReading));
+
+            documents.push(...readings.map(r => ({
+                id: r.id,
+                type: 'Water Bill' as const,
+                date: r.date,
+                amount: r.amount,
+                title: `Water Bill - ${new Date(r.date).toLocaleDateString('default', { month: 'short', year: 'numeric' })}`,
+                status: 'Paid' as const,
+                sourceData: r
+            })));
+
+            // 3. Mock Service Charge Statements
+            if (tenant.lease.serviceCharge && tenant.lease.serviceCharge > 0) {
+                for (let i = 0; i < 3; i++) {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() - i);
+                    const period = d.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+
+                    const stmt: ServiceChargeStatement = {
+                        id: `sc-${tenant.id}-${i}`,
+                        tenantId: tenant.id,
+                        propertyId: tenant.propertyId,
+                        unitName: tenant.unitName,
+                        period: period,
+                        amount: tenant.lease.serviceCharge,
+                        items: [{ description: 'General Maintenance', amount: tenant.lease.serviceCharge * 0.7 }, { description: 'Security', amount: tenant.lease.serviceCharge * 0.3 }],
+                        date: d.toISOString(),
+                        status: 'Paid',
+                        createdAt: d
+                    };
+
+                    documents.push({
+                        id: stmt.id,
+                        type: 'Service Charge' as const,
+                        date: stmt.date,
+                        amount: stmt.amount,
+                        title: `Service Charge - ${period}`,
+                        status: 'Paid',
+                        sourceData: stmt
+                    });
+                }
+            }
+        }
+    }
+
+    return documents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
 export async function getLandlords(): Promise<Landlord[]> {
     return getCollection<Landlord>('landlords');
 }
@@ -392,10 +580,10 @@ export async function getLandlord(landlordId: string): Promise<Landlord | null> 
 }
 
 export async function updateLandlord(
-  landlordId: string, 
-  data: Partial<Landlord>, 
-  propertyId: string, 
-  assignedUnits: string[]
+    landlordId: string,
+    data: Partial<Landlord>,
+    propertyId: string,
+    assignedUnits: string[]
 ): Promise<void> {
     const landlordRef = doc(db, 'landlords', landlordId);
     let userId = data.userId;
@@ -414,7 +602,7 @@ export async function updateLandlord(
         try {
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.phone);
             userId = userCredential.user.uid;
-            
+
             await createUserProfile(userId, data.email, 'landlord', { name: data.name, landlordId: landlordId });
             await logActivity(`Created landlord user: ${data.email}`);
         } catch (error: any) {
@@ -437,11 +625,55 @@ export async function updateLandlord(
     }
 
     await setDoc(landlordRef, finalData, { merge: true });
-    
+
     // This part is tricky as we can't directly update the JSON file.
     // This console log will serve as a record of the intended operation.
     console.log(`Updating property ${propertyId}: Assigning landlord ${landlordId} to units: ${assignedUnits.join(', ')}`);
     // In a real application, you would update the property document in Firestore here.
-    
+
     await logActivity(`Updated landlord details for: ${data.name || 'ID ' + landlordId}`);
+}
+
+// Property Owner (Client) Functions
+export async function getPropertyOwners(): Promise<PropertyOwner[]> {
+    return getCollection<PropertyOwner>('propertyOwners');
+}
+
+export async function getPropertyOwner(ownerId: string): Promise<PropertyOwner | null> {
+    return getDocument<PropertyOwner>('propertyOwners', ownerId);
+}
+
+export async function updatePropertyOwner(
+    ownerId: string,
+    data: Partial<PropertyOwner>
+): Promise<void> {
+    const ownerRef = doc(db, 'propertyOwners', ownerId);
+    await setDoc(ownerRef, data, { merge: true });
+    await logActivity(`Updated property owner details: ${data.name || ownerId}`);
+}
+
+export async function getLandlordPropertiesAndUnits(landlordId: string): Promise<{ property: Property, units: Unit[] }[]> {
+    const allProperties = await getProperties();
+    const result: { property: Property, units: Unit[] }[] = [];
+
+    allProperties.forEach(p => {
+        // Logic: Find units that have this landlordId
+        // If property has landlordId, include all units unless they have a different landlordId (which is rare but possible)
+        // Or if unit specifically has this landlordId
+
+        const units = p.units.filter(u => u.landlordId === landlordId || (p.landlordId === landlordId));
+
+        if (units.length > 0) {
+            result.push({
+                property: p,
+                units: units
+            });
+        }
+    });
+
+    return result;
+}
+
+export async function getAllPayments(): Promise<Payment[]> {
+    return getCollection<Payment>('payments');
 }

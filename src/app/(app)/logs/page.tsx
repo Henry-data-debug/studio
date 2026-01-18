@@ -10,11 +10,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import Papa from 'papaparse';
+import { PaginationControls } from '@/components/ui/pagination-controls';
+import { downloadCSV } from '@/lib/utils';
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [users, setUsers] = useState<Map<string, UserProfile>>(new Map());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const { user, userProfile, isLoading } = useAuth();
   const router = useRouter();
 
@@ -56,18 +59,14 @@ export default function LogsPage() {
       User: getUserEmail(log.userId),
       Action: log.action,
     }));
-
-    const csv = Papa.unparse(dataToExport);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'activity_logs.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadCSV(dataToExport, 'activity_logs.csv');
   };
+
+  const totalPages = Math.ceil(logs.length / pageSize);
+  const paginatedLogs = logs.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   if (isLoading || (userProfile?.role !== 'admin' && user?.email !== 'nigel2421@gmail.com')) {
     return <div>Loading...</div>; // Or a more sophisticated loading/access denied component
@@ -78,8 +77,8 @@ export default function LogsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Activity Logs</h2>
         <Button onClick={handleDownloadCSV} disabled={logs.length === 0}>
-            <Download className="mr-2 h-4 w-4"/>
-            Download CSV
+          <Download className="mr-2 h-4 w-4" />
+          Download CSV
         </Button>
       </div>
       <Card>
@@ -97,7 +96,7 @@ export default function LogsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs.map((log) => (
+              {paginatedLogs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
                   <TableCell>{getUserEmail(log.userId)}</TableCell>
@@ -107,6 +106,16 @@ export default function LogsPage() {
             </TableBody>
           </Table>
         </CardContent>
+        <div className="p-4 border-t">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={logs.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </Card>
     </div>
   );

@@ -1,0 +1,179 @@
+
+'use client';
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Banknote, Wallet, Building2, TrendingUp, Download } from 'lucide-react';
+import { Payment, Property, Tenant, Unit } from '@/lib/types';
+import { FinancialSummary, calculateTransactionBreakdown } from '@/lib/financial-utils';
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { downloadCSV } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface LandlordDashboardContentProps {
+    properties: { property: Property, units: Unit[] }[];
+    tenants: Tenant[];
+    payments: Payment[];
+    financialSummary: FinancialSummary;
+}
+
+export function LandlordDashboardContent({ properties, tenants, payments, financialSummary }: LandlordDashboardContentProps) {
+    const [lastMonths, setLastMonths] = useState(12);
+
+    const getUnitName = (tenantId: string) => {
+        const tenant = tenants.find(t => t.id === tenantId);
+        return tenant ? `${tenant.unitName}` : 'Unknown';
+    };
+
+    const getTenantName = (tenantId: string) => {
+        const tenant = tenants.find(t => t.id === tenantId);
+        return tenant ? tenant.name : 'Unknown';
+    };
+
+    const handleExport = () => {
+        const data = payments.map(p => {
+            // For each payment, re-calculate to show breakdown in CSV
+            const t = tenants.find(t => t.id === p.tenantId);
+            const serviceCharge = t?.lease?.serviceCharge || 0;
+            const breakdown = calculateTransactionBreakdown(p.amount, serviceCharge);
+
+            return {
+                Date: new Date(p.date).toLocaleDateString(),
+                Tenant: t?.name || 'Unknown',
+                Unit: t?.unitName || 'Unknown',
+                Type: p.type || 'Rent',
+                "Gross Amount": breakdown.gross,
+                "Service Charge Deduction": breakdown.serviceChargeDeduction,
+                "Management Fee (5%)": breakdown.managementFee,
+                "Net Remittance": breakdown.netToLandlord,
+                Notes: p.notes || ''
+            };
+        });
+        downloadCSV(data, 'landlord_financial_statement.csv');
+    };
+
+    return (
+        <div className="flex flex-col gap-8 pb-10">
+            <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-bold tracking-tight">Landlord Dashboard</h1>
+                <p className="text-muted-foreground">Financial overview of your properties and remittances.</p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-sm font-medium">Total Revenue (Gross)</CardTitle>
+                        <Banknote className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">Ksh {financialSummary.totalRevenue.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">Total collected rent & charges</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-sm font-medium">Service Charges</CardTitle>
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">Ksh {financialSummary.totalServiceCharges.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">Deducted for maintenance</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-sm font-medium">Management Fees</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">Ksh {financialSummary.totalManagementFees.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">5% agency fee on rent</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-primary/5 border-primary/20">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-sm font-medium text-primary">Net Remittance</CardTitle>
+                        <Wallet className="h-4 w-4 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-primary">Ksh {financialSummary.totalNetRemittance.toLocaleString()}</div>
+                        <p className="text-xs text-primary/80">Available for payout</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Transaction History</CardTitle>
+                        <CardDescription>Detailed breakdown of recent payments and deductions.</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleExport}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Statement
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Tenant/Unit</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead className="text-right">Gross</TableHead>
+                                <TableHead className="text-right">S. Charge</TableHead>
+                                <TableHead className="text-right">Mgmt Fee</TableHead>
+                                <TableHead className="text-right">Net</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {payments.slice(0, 10).map((payment) => {
+                                const tenant = tenants.find(t => t.id === payment.tenantId);
+                                const serviceCharge = tenant?.lease?.serviceCharge || 0;
+                                const breakdown = calculateTransactionBreakdown(payment.amount, serviceCharge);
+
+                                return (
+                                    <TableRow key={payment.id}>
+                                        <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                                        <TableCell>
+                                            <div className="font-medium">{tenant?.unitName}</div>
+                                            <div className="text-xs text-muted-foreground">{tenant?.name}</div>
+                                        </TableCell>
+                                        <TableCell><Badge variant="outline">{payment.type || 'Rent'}</Badge></TableCell>
+                                        <TableCell className="text-right">Ksh {breakdown.gross.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right text-muted-foreground">- {breakdown.serviceChargeDeduction.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right text-muted-foreground">- {breakdown.managementFee.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-bold">Ksh {breakdown.netToLandlord.toLocaleString()}</TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Properties Overview</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {properties.map((item, i) => (
+                                <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                                    <div>
+                                        <p className="font-medium">{item.property.name}</p>
+                                        <p className="text-sm text-muted-foreground">{item.units.length} Units Owned</p>
+                                    </div>
+                                    <Badge variant="secondary">{item.property.type}</Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

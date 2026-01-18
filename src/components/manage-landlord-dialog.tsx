@@ -17,6 +17,7 @@ import type { Landlord, Property, Unit } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { ScrollArea } from './ui/scroll-area';
+import { useLoading } from '@/hooks/useLoading';
 
 interface Props {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
   const [bankAccount, setBankAccount] = useState(landlord.bankAccount);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
-  
+
   const landlordUnits = property.units.filter(u => u.ownership === 'Landlord');
 
   useEffect(() => {
@@ -41,36 +42,44 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
     setEmail(landlord.email || '');
     setPhone(landlord.phone || '');
     setBankAccount(landlord.bankAccount || '');
-    
+
     // Pre-select units already assigned to this landlord
     const currentlyAssignedUnits = property.units
-        .filter(u => u.landlordId === landlord.id)
-        .map(u => u.name);
+      .filter(u => u.landlordId === landlord.id)
+      .map(u => u.name);
     setSelectedUnits(currentlyAssignedUnits);
 
   }, [landlord, property]);
-  
+
   const handleUnitToggle = (unitName: string) => {
-    setSelectedUnits(prev => 
-        prev.includes(unitName) 
-            ? prev.filter(name => name !== unitName)
-            : [...prev, unitName]
+    setSelectedUnits(prev =>
+      prev.includes(unitName)
+        ? prev.filter(name => name !== unitName)
+        : [...prev, unitName]
     );
   }
+
+  const { startLoading, stopLoading } = useLoading();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    onSave({
+    startLoading('Saving Landlord Details...');
+    try {
+      await onSave({
         ...landlord,
         name,
         email,
         phone,
         bankAccount,
-    }, selectedUnits);
-    setIsLoading(false);
+      }, selectedUnits);
+    } catch (error) {
+      // Toast handles error usually, but we need to stop loader if not closing
+    } finally {
+      setIsLoading(false);
+      stopLoading();
+    }
   }
-
   // Placeholder for earnings calculation
   const earnings = `Calculation pending...`;
 
@@ -87,45 +96,45 @@ export function ManageLandlordDialog({ isOpen, onClose, landlord, property, onSa
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="landlord-name">Landlord Name</Label>
-              <Input id="landlord-name" value={name} onChange={(e) => setName(e.target.value)} required/>
+              <Input id="landlord-name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
-             <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="landlord-email">Landlord Email</Label>
-                  <Input id="landlord-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="landlord-phone">Landlord Phone</Label>
-                  <Input id="landlord-phone" value={phone} onChange={(e) => setPhone(e.target.value)} required/>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="landlord-email">Landlord Email</Label>
+                <Input id="landlord-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="landlord-phone">Landlord Phone</Label>
+                <Input id="landlord-phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="bank-account">Bank Account Details</Label>
               <Input id="bank-account" value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} />
             </div>
-             <div className="grid gap-2">
-                <Label>Assign Landlord Units</Label>
-                <ScrollArea className="h-40 rounded-md border p-4">
-                    <div className="space-y-2">
-                        {landlordUnits.map(unit => (
-                            <div key={unit.name} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`unit-${unit.name}`}
-                                    checked={selectedUnits.includes(unit.name)}
-                                    onCheckedChange={() => handleUnitToggle(unit.name)}
-                                    // Disable checkbox if the unit is assigned to a *different* landlord
-                                    disabled={unit.landlordId !== undefined && unit.landlordId !== landlord.id}
-                                />
-                                <label
-                                    htmlFor={`unit-${unit.name}`}
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                    {unit.name}
-                                </label>
-                            </div>
-                        ))}
+            <div className="grid gap-2">
+              <Label>Assign Landlord Units</Label>
+              <ScrollArea className="h-40 rounded-md border p-4">
+                <div className="space-y-2">
+                  {landlordUnits.map(unit => (
+                    <div key={unit.name} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`unit-${unit.name}`}
+                        checked={selectedUnits.includes(unit.name)}
+                        onCheckedChange={() => handleUnitToggle(unit.name)}
+                        // Disable checkbox if the unit is assigned to a *different* landlord
+                        disabled={unit.landlordId !== undefined && unit.landlordId !== landlord.id}
+                      />
+                      <label
+                        htmlFor={`unit-${unit.name}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {unit.name}
+                      </label>
                     </div>
-                </ScrollArea>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
             <div className="grid gap-2">
               <Label>Potential Earnings (from occupied units)</Label>

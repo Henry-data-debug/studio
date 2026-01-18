@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { updateUnitTypesFromCSV } from '@/lib/data';
 import { UnitType, unitTypes } from '@/lib/types';
+import { useLoading } from '@/hooks/useLoading';
 
 interface CsvData {
   PropertyName: string;
@@ -27,7 +28,7 @@ interface CsvData {
 }
 
 interface Props {
-    onUploadComplete: () => void;
+  onUploadComplete: () => void;
 }
 
 export function UnitCsvUploader({ onUploadComplete }: Props) {
@@ -36,6 +37,7 @@ export function UnitCsvUploader({ onUploadComplete }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { startLoading, stopLoading } = useLoading();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -50,6 +52,7 @@ export function UnitCsvUploader({ onUploadComplete }: Props) {
     }
 
     setIsLoading(true);
+    startLoading('Processing CSV Data...');
 
     Papa.parse<CsvData>(file, {
       header: true,
@@ -64,20 +67,22 @@ export function UnitCsvUploader({ onUploadComplete }: Props) {
             description: `Error on row ${errors[0].row}: ${errors[0].message}`,
           });
           setIsLoading(false);
+          stopLoading();
           return;
         }
-        
+
         const validUnitTypes = new Set(unitTypes);
         const invalidRow = data.find(row => !validUnitTypes.has(row.UnitType as UnitType));
 
         if (invalidRow) {
-            toast({
-                variant: 'destructive',
-                title: 'Invalid Unit Type',
-                description: `Row for unit "${invalidRow.UnitName}" has an invalid UnitType: "${invalidRow.UnitType}".`,
-            });
-            setIsLoading(false);
-            return;
+          toast({
+            variant: 'destructive',
+            title: 'Invalid Unit Type',
+            description: `Row for unit "${invalidRow.UnitName}" has an invalid UnitType: "${invalidRow.UnitType}".`,
+          });
+          setIsLoading(false);
+          stopLoading();
+          return;
         }
 
         try {
@@ -100,6 +105,7 @@ export function UnitCsvUploader({ onUploadComplete }: Props) {
           });
         } finally {
           setIsLoading(false);
+          stopLoading();
         }
       },
       error: (error: Error) => {
@@ -109,6 +115,7 @@ export function UnitCsvUploader({ onUploadComplete }: Props) {
           description: error.message,
         });
         setIsLoading(false);
+        stopLoading();
       },
     });
   };

@@ -13,6 +13,7 @@ import type { Property } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useUnitFilter } from '@/hooks/useUnitFilter';
+import { useLoading } from '@/hooks/useLoading';
 
 export default function AddWaterMeterReadingPage() {
   const router = useRouter();
@@ -41,6 +42,8 @@ export default function AddWaterMeterReadingPage() {
     fetchData();
   }, []);
 
+  const { startLoading, stopLoading } = useLoading();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -54,6 +57,7 @@ export default function AddWaterMeterReadingPage() {
     }
 
     setIsLoading(true);
+    startLoading('Recording Water Reading...');
 
     try {
       await addWaterMeterReading({
@@ -74,6 +78,7 @@ export default function AddWaterMeterReadingPage() {
         title: "Error",
         description: error.message || "Failed to add reading. Please try again.",
       });
+      stopLoading();
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +106,7 @@ export default function AddWaterMeterReadingPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="floor">Floor</Label>
@@ -130,32 +135,32 @@ export default function AddWaterMeterReadingPage() {
                 </Select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="prior-reading">Prior Reading</Label>
-                    <Input 
-                        id="prior-reading" 
-                        type="number" 
-                        value={priorReading} 
-                        onChange={(e) => setPriorReading(e.target.value)} 
-                        placeholder="e.g., 1234"
-                        required 
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="current-reading">Current Reading</Label>
-                    <Input 
-                        id="current-reading" 
-                        type="number" 
-                        value={currentReading} 
-                        onChange={(e) => setCurrentReading(e.target.value)} 
-                        placeholder="e.g., 1250"
-                        required 
-                    />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="prior-reading">Prior Reading</Label>
+                <Input
+                  id="prior-reading"
+                  type="number"
+                  value={priorReading}
+                  onChange={(e) => setPriorReading(e.target.value)}
+                  placeholder="e.g., 1234"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current-reading">Current Reading</Label>
+                <Input
+                  id="current-reading"
+                  type="number"
+                  value={currentReading}
+                  onChange={(e) => setCurrentReading(e.target.value)}
+                  placeholder="e.g., 1250"
+                  required
+                />
+              </div>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Reading
