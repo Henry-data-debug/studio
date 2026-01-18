@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,162 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Home, Users, Wallet, DollarSign, Calendar, Droplets, LogOut } from 'lucide-react';
-import { getTenants, getTenantPayments } from '@/lib/data';
+import { getTenants, getTenantPayments, getAllPayments } from '@/lib/data';
 import { format, addMonths, startOfMonth, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { LandlordDashboardContent } from '@/components/financials/landlord-dashboard-content';
+import { FinancialSummary, aggregateFinancials } from '@/lib/financial-utils';
+import { Loader2 } from 'lucide-react';
 
-// Investor Dashboard Components
-interface OwnedUnit extends Unit {
-    propertyName: string;
-    propertyAddress: string;
-    tenantName?: string;
-    rent?: number;
-    paymentStatus?: 'Paid' | 'Pending' | 'Overdue';
-}
-
-function InvestorDashboard() {
-    const { userProfile } = useAuth();
-    const [ownedUnits, setOwnedUnits] = useState<OwnedUnit[]>([]);
-    const [summary, setSummary] = useState({ totalUnits: 0, occupiedUnits: 0, rentCollected: 0 });
-
-    useEffect(() => {
-        async function fetchData() {
-            if (userProfile?.role === 'homeowner' && userProfile.propertyOwnerDetails) {
-                const tenants = await getTenants();
-                const ownerDetails = userProfile.propertyOwnerDetails;
-                
-                let units: OwnedUnit[] = [];
-                let rentCollected = 0;
-                let occupiedCount = 0;
-
-                ownerDetails.properties.forEach(prop => {
-                    prop.units.forEach(unit => {
-                        const tenant = tenants.find(t => t.propertyId === prop.property.id && t.unitName === unit.name);
-                        const isOccupied = !!tenant;
-
-                        if (isOccupied) {
-                            occupiedCount++;
-                            if (tenant.lease.paymentStatus === 'Paid') {
-                                rentCollected += tenant.lease.rent || 0;
-                            }
-                        }
-
-                        units.push({
-                            ...unit,
-                            propertyName: prop.property.name,
-                            propertyAddress: prop.property.address,
-                            tenantName: tenant?.name,
-                            rent: tenant?.lease?.rent,
-                            paymentStatus: tenant?.lease?.paymentStatus,
-                        });
-                    });
-                });
-                
-                setOwnedUnits(units);
-                setSummary({
-                    totalUnits: units.length,
-                    occupiedUnits: occupiedCount,
-                    rentCollected: rentCollected,
-                });
-            }
-        }
-        fetchData();
-    }, [userProfile]);
-
-    const getStatusVariant = (paymentStatus?: string, unitStatus?: string) => {
-        if (paymentStatus) {
-            switch (paymentStatus) {
-                case 'Paid': return 'default';
-                case 'Pending': return 'secondary';
-                case 'Overdue': return 'destructive';
-            }
-        }
-        if (unitStatus === 'vacant') return 'outline';
-        return 'secondary';
-    };
-
-    return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Welcome, {userProfile?.name}</h1>
-
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Total Owned Units</CardTitle>
-                        <Home className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{summary.totalUnits}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Occupied Units</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{summary.occupiedUnits}</div>
-                        <p className="text-xs text-muted-foreground">
-                            {summary.totalUnits > 0 ? ((summary.occupiedUnits / summary.totalUnits) * 100).toFixed(0) : 0}% occupancy
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Rent Collected (This Period)</CardTitle>
-                        <Wallet className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">Ksh {summary.rentCollected.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Your Properties</CardTitle>
-                    <CardDescription>A list of all units assigned to you.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Property</TableHead>
-                                <TableHead>Unit</TableHead>
-                                <TableHead>Tenant</TableHead>
-                                <TableHead>Monthly Rent</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {ownedUnits.map((unit, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>
-                                        <div className="font-medium">{unit.propertyName}</div>
-                                        <div className="text-xs text-muted-foreground">{unit.propertyAddress}</div>
-                                    </TableCell>
-                                    <TableCell>{unit.name}</TableCell>
-                                    <TableCell>{unit.tenantName || 'N/A'}</TableCell>
-                                    <TableCell>{unit.rent ? `Ksh ${unit.rent.toLocaleString()}` : 'N/A'}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={getStatusVariant(unit.paymentStatus, unit.status)}>
-                                            {unit.paymentStatus || 'Vacant'}
-                                        </Badge>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
+// This component is for owners who are also residents, showing their personal bills.
 function ResidentOwnerDashboard() {
     const { userProfile } = useAuth();
     const { toast } = useToast();
@@ -178,14 +33,6 @@ function ResidentOwnerDashboard() {
             getTenantPayments(userProfile.tenantId).then(setPayments);
         }
     }, [userProfile]);
-
-    const handleMoveOutNotice = () => {
-        toast({
-            title: "Move-Out Notice Submitted",
-            description: "Your one-month notice to vacate has been received and sent to the property manager.",
-            duration: 5000,
-        });
-    };
 
     const getPaymentStatusVariant = (status?: Tenant['lease']['paymentStatus']) => {
         switch (status) {
@@ -290,6 +137,73 @@ function ResidentOwnerDashboard() {
     );
 }
 
+// This component is for investor owners, showing portfolio financial summary.
+function InvestorDashboard() {
+    const { userProfile } = useAuth();
+    const [dashboardData, setDashboardData] = useState<{
+        properties: { property: Property, units: Unit[] }[],
+        tenants: Tenant[],
+        payments: Payment[],
+        financialSummary: FinancialSummary,
+    } | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchData() {
+            if (userProfile?.role === 'homeowner' && userProfile.propertyOwnerDetails) {
+                setLoading(true);
+                const [allTenants, allPayments] = await Promise.all([
+                    getTenants(),
+                    getAllPayments(),
+                ]);
+
+                const ownerProperties = userProfile.propertyOwnerDetails.properties;
+                const ownedUnitIdentifiers = new Set<string>();
+                ownerProperties.forEach(p => {
+                    p.units.forEach(u => ownedUnitIdentifiers.add(`${p.property.id}-${u.name}`));
+                });
+
+                const relevantTenants = allTenants.filter(t => ownedUnitIdentifiers.has(`${t.propertyId}-${t.unitName}`));
+                const relevantTenantIds = relevantTenants.map(t => t.id);
+                const relevantPayments = allPayments.filter(p => relevantTenantIds.includes(p.tenantId));
+
+                const summary = aggregateFinancials(relevantPayments, relevantTenants);
+                
+                setDashboardData({
+                    properties: ownerProperties,
+                    tenants: relevantTenants,
+                    payments: relevantPayments,
+                    financialSummary: summary,
+                });
+                setLoading(false);
+            } else if (userProfile) {
+                // Not an investor owner or data is missing, stop loading
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [userProfile]);
+
+    if (loading) {
+        return (
+            <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!dashboardData) {
+        return (
+            <div>
+                <h1 className="text-3xl font-bold">Welcome, {userProfile?.name}</h1>
+                <p className="mt-4 text-muted-foreground">You are not currently assigned to any properties as an investor. Please contact management.</p>
+            </div>
+        );
+    }
+
+    return <LandlordDashboardContent {...dashboardData} />;
+}
+
 export default function OwnerDashboardPage() {
     const { userProfile, isLoading } = useAuth();
     const router = useRouter();
@@ -300,7 +214,11 @@ export default function OwnerDashboardPage() {
     };
     
     if (isLoading) {
-        return <div>Loading dashboard...</div>;
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
     }
 
     const hasResidentDetails = !!userProfile?.tenantDetails;
@@ -309,7 +227,7 @@ export default function OwnerDashboardPage() {
         <div className="space-y-6">
             <header className="flex items-center justify-between">
                 <div>
-                    {/* Title can be dynamic if needed, but this is fine for now */}
+                    {/* Title is rendered inside the child components */}
                 </div>
                 <Button onClick={handleSignOut} variant="outline">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -317,7 +235,6 @@ export default function OwnerDashboardPage() {
                 </Button>
             </header>
             
-            {/* Prioritize Resident Dashboard if they are also a resident */}
             {hasResidentDetails ? <ResidentOwnerDashboard /> : <InvestorDashboard />}
         </div>
     );
