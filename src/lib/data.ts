@@ -80,8 +80,7 @@ export async function getTenant(id: string): Promise<Tenant | null> {
         const readingsQuery = query(
             collection(db, 'waterReadings'),
             where('tenantId', '==', id),
-            orderBy('createdAt', 'desc'),
-            limit(1) // We only need the latest one for the dashboard card
+            orderBy('createdAt', 'desc')
         );
         const readingsSnapshot = await getDocs(readingsQuery);
         const readings = readingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaterMeterReading));
@@ -585,7 +584,7 @@ export async function getFinancialDocuments(userId: string, role: UserRole): Pro
         }
     }
 
-    return documents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return documents.sort((a, b) => new Date(b.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function getLandlords(): Promise<Landlord[]> {
