@@ -6,7 +6,12 @@ import { auth } from '@/lib/firebase';
 import { logActivity } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { Loader } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -30,7 +35,6 @@ export default function LoginPage() {
     }
   }, [isAuth, isLoading, userProfile, router]);
 
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -53,57 +57,137 @@ export default function LoginPage() {
 
   if (isLoading || isAuth) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Eracov Properties</h1>
-            <p className="text-gray-500 dark:text-gray-400">Management Portal</p>
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Left Side: Hero / Brand Area */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="hidden lg:flex w-1/2 relative flex-col justify-between p-12 text-white bg-slate-900 border-r border-slate-800"
+      >
+        {/* Background Gradient/Pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black z-0" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 z-0 mix-blend-overlay"></div>
+
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-8">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white">E</div>
+            <span className="text-xl font-bold tracking-tight">Eracov Properties</span>
+          </div>
+          <h1 className="text-5xl font-extrabold leading-tight tracking-tight mb-4">
+            Manage your properties <br />
+            <span className="text-blue-400">with confidence.</span>
+          </h1>
+          <p className="text-lg text-slate-300 max-w-md">
+            The complete solution for landlords, tenants, and homeowners. Streamline your workflow today.
+          </p>
         </div>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              required
-              disabled={isLoggingIn}
-            />
-          </div>
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              required
-              disabled={isLoggingIn}
-            />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex flex-col space-y-2">
-            <button
-              type="submit"
-              className="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50"
-              disabled={isLoggingIn}
-            >
-              {isLoggingIn ? <Loader className="mx-auto h-5 w-5 animate-spin" /> : 'Login'}
-            </button>
-             <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-              Contact an administrator if you have trouble logging in.
+
+        <div className="relative z-10 text-sm text-slate-400">
+          © {new Date().getFullYear()} Eracov Properties. All rights reserved.
+        </div>
+      </motion.div>
+
+      {/* Right Side: Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-12 relative">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full max-w-md space-y-8"
+        >
+          <div className="text-center lg:text-left">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please enter your details to sign in to your account.
             </p>
           </div>
-        </form>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-9 h-11"
+                    disabled={isLoggingIn}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {/* Optional: Add Forgot Password link here */}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-9 h-11"
+                    disabled={isLoggingIn}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <motion.div
+              animate={error ? { x: [-5, 5, -5, 5, 0] } : {}}
+              transition={{ duration: 0.3 }}
+            >
+              {error && (
+                <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-md">
+                  {error}
+                </div>
+              )}
+            </motion.div>
+
+            <Button
+              className="w-full h-11 text-base font-medium shadow-lg shadow-blue-500/20"
+              type="submit"
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <p className="px-8 text-center text-sm text-muted-foreground">
+            <a href="#" className="underline underline-offset-4 hover:text-primary">
+              Contact Support
+            </a>
+            {" "} if you are having trouble access your account.
+          </p>
+        </motion.div>
       </div>
     </div>
   );
