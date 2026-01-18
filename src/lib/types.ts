@@ -119,6 +119,9 @@ export type UserProfile = {
   landlordId?: string;
   propertyOwnerId?: string;
   tenantDetails?: Tenant;
+  landlordDetails?: {
+    properties: { property: Property, units: Unit[] }[]
+  };
   propertyOwnerDetails?: {
     properties: { property: Property, units: Unit[] }[]
   };

@@ -243,6 +243,21 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
                 userProfile.tenantDetails = tenantData;
             }
         }
+
+        if (userProfile.role === 'landlord' && userProfile.landlordId) {
+            const allProperties = await getProperties();
+            const landlord = await getLandlord(userProfile.landlordId);
+            if (landlord) {
+                const landlordProperties: { property: Property, units: Unit[] }[] = [];
+                allProperties.forEach(p => {
+                    const units = p.units.filter(u => u.landlordId === landlord.id);
+                    if (units.length > 0) {
+                        landlordProperties.push({ property: p, units });
+                    }
+                });
+                userProfile.landlordDetails = { properties: landlordProperties };
+            }
+        }
         
         if (userProfile.role === 'homeowner' && userProfile.propertyOwnerId) {
             const allProperties = await getProperties();
@@ -584,7 +599,7 @@ export async function getFinancialDocuments(userId: string, role: UserRole): Pro
         }
     }
 
-    return documents.sort((a, b) => new Date(b.date).getTime() - new Date(b.date).getTime());
+    return documents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getLandlords(): Promise<Landlord[]> {
