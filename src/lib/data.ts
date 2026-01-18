@@ -238,7 +238,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     if (docSnap.exists()) {
         const userProfile = { id: docSnap.id, ...docSnap.data() } as UserProfile;
 
-        if (userProfile.role === 'tenant' && userProfile.tenantId) {
+        if ((userProfile.role === 'tenant' || userProfile.role === 'homeowner') && userProfile.tenantId) {
             const tenantData = await getTenant(userProfile.tenantId);
             if (tenantData) {
                 userProfile.tenantDetails = tenantData;
