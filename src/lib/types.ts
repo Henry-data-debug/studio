@@ -22,8 +22,21 @@ export type PropertyOwner = {
   userId?: string;
 };
 
-export type OwnershipType = 'SM' | 'Landlord' | 'Client';
-export const ownershipTypes: OwnershipType[] = ['SM', 'Landlord', 'Client'];
+export type OwnershipType = 'SM' | 'Landlord';
+export const ownershipTypes: OwnershipType[] = ['SM', 'Landlord'];
+
+export type ManagementStatus =
+  | 'Renting Mngd by Eracov for SM'
+  | 'Renting Mngd by Eracov for Client'
+  | 'Reserved for Airbnb'
+  | 'Client Self Fully Managed';
+
+export const managementStatuses: ManagementStatus[] = [
+  'Renting Mngd by Eracov for SM',
+  'Renting Mngd by Eracov for Client',
+  'Reserved for Airbnb',
+  'Client Self Fully Managed',
+];
 
 export type UnitType = 'Studio' | 'One Bedroom' | 'Two Bedroom' | 'Shop' | 'Three Bedroom';
 export const unitTypes: UnitType[] = ['Studio', 'One Bedroom', 'Two Bedroom', 'Shop', 'Three Bedroom'];
@@ -37,6 +50,7 @@ export type Unit = {
   ownership: OwnershipType;
   unitType: UnitType;
   landlordId?: string;
+  managementStatus?: ManagementStatus;
 };
 
 export type Agent = 'Susan' | 'Beatrice' | 'Nelly' | 'Dennis' | 'Peris' | 'Felista' | 'Martha' | 'Thomas' | 'Kiragu';

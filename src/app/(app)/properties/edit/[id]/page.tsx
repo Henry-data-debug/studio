@@ -9,7 +9,7 @@ import { getProperty, updateProperty, getLandlords } from '@/lib/data';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Property, ownershipTypes, Unit, unitTypes, unitStatuses, Landlord } from '@/lib/types';
+import { Property, ownershipTypes, Unit, unitTypes, unitStatuses, Landlord, managementStatuses } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { EditPropertyHeader } from '@/components/layout/edit-property-header';
@@ -21,6 +21,7 @@ const unitSchema = z.object({
   ownership: z.enum(ownershipTypes),
   unitType: z.enum(unitTypes),
   landlordId: z.string().optional(),
+  managementStatus: z.enum(managementStatuses).optional(),
 });
 
 const formSchema = z.object({
@@ -75,6 +76,7 @@ export default function EditPropertyPage() {
                         unitType: u.unitType || 'Studio',
                         status: u.status || 'vacant',
                         landlordId: u.landlordId || '',
+                        managementStatus: u.managementStatus,
                     })) || [],
                 });
             }
@@ -104,7 +106,7 @@ export default function EditPropertyPage() {
                 <h3 className="text-lg font-medium mb-4">Units</h3>
                 <div className="space-y-4">
                 {fields.map((field, index) => (
-                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1fr_1fr] gap-4 items-end p-4 border rounded-lg">
+                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end p-4 border rounded-lg">
                         <FormField
                             control={form.control}
                             name={`units.${index}.name`}
@@ -217,6 +219,30 @@ export default function EditPropertyPage() {
                                 )}
                             />
                         )}
+                        <FormField
+                            control={form.control}
+                            name={`units.${index}.managementStatus`}
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Management Status</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {managementStatuses.map((status) => (
+                                        <SelectItem key={status} value={status} className="capitalize">
+                                        {status}
+                                        </SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                 ))}
                 </div>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { addProperty } from '@/lib/data';
-import { Unit, UnitType, unitTypes, OwnershipType, ownershipTypes } from '@/lib/types';
+import { Unit, UnitType, unitTypes, OwnershipType, ownershipTypes, ManagementStatus, managementStatuses } from '@/lib/types';
 import { X, Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -17,7 +17,7 @@ export default function AddPropertyPage() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [address, setAddress] = useState('');
-  const [units, setUnits] = useState<Omit<Unit, 'status'>[]>([{ name: '', unitType: 'Studio', ownership: 'SM' }]);
+  const [units, setUnits] = useState<Omit<Unit, 'status'>[]>([{ name: '', unitType: 'Studio', ownership: 'SM', managementStatus: 'Renting Mngd by Eracov for SM' }]);
 
   const handleUnitChange = (index: number, field: keyof Omit<Unit, 'status'>, value: string) => {
     const newUnits = [...units];
@@ -26,7 +26,7 @@ export default function AddPropertyPage() {
   };
 
   const addUnit = () => {
-    setUnits([...units, { name: '', unitType: 'Studio', ownership: 'SM' }]);
+    setUnits([...units, { name: '', unitType: 'Studio', ownership: 'SM', managementStatus: 'Renting Mngd by Eracov for SM' }]);
   };
 
   const removeUnit = (index: number) => {
@@ -70,7 +70,7 @@ export default function AddPropertyPage() {
           <div className="space-y-4">
             <Label>Units</Label>
             {units.map((unit, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center p-4 border rounded-lg">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center p-4 border rounded-lg">
                 <div className="md:col-span-1">
                   <Label htmlFor={`unit-name-${index}`}>Unit Name</Label>
                   <Input
@@ -102,6 +102,19 @@ export default function AddPropertyPage() {
                         <SelectContent>
                             {ownershipTypes.map(type => (
                                 <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="md:col-span-1">
+                    <Label htmlFor={`management-status-${index}`}>Management Status</Label>
+                     <Select value={unit.managementStatus} onValueChange={(value) => handleUnitChange(index, 'managementStatus', value)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {managementStatuses.map(status => (
+                                <SelectItem key={status} value={status}>{status}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
