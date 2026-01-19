@@ -80,7 +80,8 @@ export async function getTenant(id: string): Promise<Tenant | null> {
         const readingsQuery = query(
             collection(db, 'waterReadings'),
             where('tenantId', '==', id),
-            orderBy('createdAt', 'desc')
+            orderBy('createdAt', 'desc'),
+            limit(12)
         );
         const readingsSnapshot = await getDocs(readingsQuery);
         const readings = readingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WaterMeterReading));
@@ -657,10 +658,26 @@ export async function updateLandlord(
 
     await setDoc(landlordRef, finalData, { merge: true });
 
-    // This part is tricky as we can't directly update the JSON file.
-    // This console log will serve as a record of the intended operation.
-    console.log(`Updating property ${propertyId}: Assigning landlord ${landlordId} to units: ${assignedUnits.join(', ')}`);
-    // In a real application, you would update the property document in Firestore here.
+    // Update the in-memory property data to reflect unit assignments.
+    const propertyIndex = propertiesData.properties.findIndex(p => p.id === propertyId);
+    if (propertyIndex !== -1) {
+        const propertyToUpdate = propertiesData.properties[propertyIndex];
+
+        propertyToUpdate.units.forEach(unit => {
+            // If the unit is now selected for this landlord, assign it.
+            if (assignedUnits.includes(unit.name)) {
+                unit.landlordId = landlordId;
+            } 
+            // If the unit was previously assigned to this landlord but is no longer selected, un-assign it.
+            else if (unit.landlordId === landlordId) {
+                delete (unit as Partial<Unit>).landlordId;
+            }
+        });
+
+        propertiesData.properties[propertyIndex] = propertyToUpdate;
+    } else {
+        console.error(`Could not find property with ID ${propertyId} to assign units.`);
+    }
 
     await logActivity(`Updated landlord details for: ${data.name || 'ID ' + landlordId}`);
 }
