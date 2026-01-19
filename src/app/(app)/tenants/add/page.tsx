@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -47,9 +46,11 @@ export default function AddTenantPage() {
     if (selectedProperty) {
       const property = properties.find(p => p.id === selectedProperty);
       if (property) {
-        // For Homeowners, we might want to show all units or just a subset
-        // But for now, let's stick to vacant units
-        setVacantUnits(property.units.filter(u => u.status === 'vacant'));
+        const availableUnits = property.units.filter(u =>
+          u.status === 'vacant' &&
+          (u.managementStatus === 'Renting Mngd by Eracov for SM' || u.managementStatus === 'Renting Mngd by Eracov for Client')
+        );
+        setVacantUnits(availableUnits);
       }
     } else {
       setVacantUnits([]);
