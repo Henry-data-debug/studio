@@ -155,22 +155,36 @@ export function LandlordDashboardContent({ properties, tenants, payments, financ
             </Card>
 
             <div className="grid gap-6 md:grid-cols-2">
-                <Card>
+               <Card>
                     <CardHeader>
-                        <CardTitle>Properties Overview</CardTitle>
+                        <CardTitle>Your Units</CardTitle>
+                        <CardDescription>A list of all your units and their current rental status.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            {properties.map((item, i) => (
-                                <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                                    <div>
-                                        <p className="font-medium">{item.property.name}</p>
-                                        <p className="text-sm text-muted-foreground">{item.units.length} Units Owned</p>
-                                    </div>
-                                    <Badge variant="secondary">{item.property.type}</Badge>
-                                </div>
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Property</TableHead>
+                            <TableHead>Unit Name</TableHead>
+                            <TableHead>Unit Type</TableHead>
+                            <TableHead className="text-right">Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {properties.flatMap(p => p.units.map(unit => ({ ...unit, propertyName: p.property.name }))).map((unit, index) => (
+                            <TableRow key={index}>
+                                <TableCell className="font-medium">{unit.propertyName}</TableCell>
+                                <TableCell>{unit.name}</TableCell>
+                                <TableCell>{unit.unitType}</TableCell>
+                                <TableCell className="text-right">
+                                <Badge variant={unit.status === 'vacant' ? 'secondary' : 'default'} className="capitalize">
+                                    {unit.status}
+                                </Badge>
+                                </TableCell>
+                            </TableRow>
                             ))}
-                        </div>
+                        </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </div>
